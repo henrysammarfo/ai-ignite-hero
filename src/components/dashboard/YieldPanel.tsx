@@ -67,6 +67,33 @@ const YieldPanel = () => {
         ))}
       </div>
 
+      {/* APY Chart */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
+            <TrendingUp size={16} className="text-muted-foreground" />
+            APY Performance (10 weeks)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig} className="h-[250px] w-full">
+            <AreaChart data={apyChartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="apyGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="week" tick={{ fontSize: 12 }} className="fill-muted-foreground" />
+              <YAxis domain={[7, 9]} tick={{ fontSize: 12 }} tickFormatter={(v) => `${v}%`} className="fill-muted-foreground" />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} />
+              <Area type="monotone" dataKey="apy" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#apyGradient)" />
+            </AreaChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+
       {/* Yield History */}
       <Card className="shadow-sm">
         <CardHeader className="pb-3">
