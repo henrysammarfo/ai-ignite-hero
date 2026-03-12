@@ -5,7 +5,7 @@ import HowItWorksSection from "@/components/HowItWorksSection";
 import SecuritySection from "@/components/SecuritySection";
 import EcosystemSection from "@/components/EcosystemSection";
 import CTASection from "@/components/CTASection";
-import TeamSection from "@/components/TeamSection";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -17,7 +17,7 @@ const Index = () => {
       <section id="security"><SecuritySection /></section>
       <section id="ecosystem"><EcosystemSection /></section>
       <CTASection />
-      <section id="team"><TeamSection /></section>
+      <Footer />
     </div>
   );
 };
