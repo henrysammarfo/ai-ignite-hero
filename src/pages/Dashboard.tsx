@@ -20,7 +20,7 @@ const DashboardContent = () => {
   const ActivePanel = panels[activeTab] || OverviewPanel;
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="dashboard-theme flex min-h-screen bg-background">
       <DashboardSidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="flex-1 p-4 md:p-8 overflow-y-auto pt-16 md:pt-8">
         <ActivePanel />
