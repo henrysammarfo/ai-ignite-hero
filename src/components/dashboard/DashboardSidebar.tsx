@@ -1,4 +1,4 @@
-import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu } from "lucide-react";
+import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,10 +12,12 @@ interface DashboardSidebarProps {
 
 const navItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
   { id: "compliance", label: "Compliance", icon: Shield },
   { id: "deposit", label: "Deposit", icon: ArrowDownToLine },
   { id: "yield", label: "Yield", icon: TrendingUp },
   { id: "reports", label: "Reports", icon: FileText },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarProps & { onNavigate?: () => void }) => {
@@ -50,10 +52,16 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
             </button>
           </div>
         ) : (
-          <Button onClick={connect} className="w-full gap-2 rounded-lg font-sans" size="sm">
-            <Wallet size={14} />
-            Connect Wallet
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={connect} className="w-full gap-2 rounded-lg font-sans text-sm justify-start" size="sm" variant="outline">
+              <img src="https://raw.githubusercontent.com/nicnocquee/cryptocurrency-icons/master/icons/sol.svg" alt="" className="w-4 h-4" />
+              Phantom
+            </Button>
+            <Button onClick={connect} className="w-full gap-2 rounded-lg font-sans text-sm justify-start" size="sm" variant="outline">
+              <Wallet size={14} />
+              Solflare
+            </Button>
+          </div>
         )}
       </div>
 

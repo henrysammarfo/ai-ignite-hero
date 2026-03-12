@@ -6,6 +6,8 @@ import CompliancePanel from "@/components/dashboard/CompliancePanel";
 import DepositPanel from "@/components/dashboard/DepositPanel";
 import YieldPanel from "@/components/dashboard/YieldPanel";
 import ReportsPanel from "@/components/dashboard/ReportsPanel";
+import TransactionsPanel from "@/components/dashboard/TransactionsPanel";
+import SettingsPanel from "@/components/dashboard/SettingsPanel";
 
 const panels: Record<string, () => JSX.Element> = {
   overview: OverviewPanel,
@@ -13,6 +15,8 @@ const panels: Record<string, () => JSX.Element> = {
   deposit: DepositPanel,
   yield: YieldPanel,
   reports: ReportsPanel,
+  transactions: TransactionsPanel,
+  settings: SettingsPanel,
 };
 
 const DashboardContent = () => {

@@ -86,22 +86,22 @@ All colors MUST be HSL.
   /* Dashboard light theme */
   .dashboard-theme {
     --background: 0 0% 97%;
-    --foreground: 0 0% 9%;
+    --foreground: 0 0% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 0 0% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 0 0% 4%;
 
     --primary: 43 72% 45%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 94%;
-    --secondary-foreground: 0 0% 15%;
+    --secondary-foreground: 0 0% 4%;
 
     --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 45%;
+    --muted-foreground: 0 0% 40%;
 
     --accent: 43 72% 45%;
     --accent-foreground: 0 0% 100%;
@@ -114,11 +114,11 @@ All colors MUST be HSL.
     --ring: 43 72% 45%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 25%;
+    --sidebar-foreground: 0 0% 4%;
     --sidebar-primary: 43 72% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 43 50% 96%;
-    --sidebar-accent-foreground: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 4%;
     --sidebar-border: 0 0% 91%;
     --sidebar-ring: 43 72% 45%;
   }
