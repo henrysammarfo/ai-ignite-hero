@@ -1,6 +1,5 @@
-import { Shield, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Shield, CheckCircle2, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { useWallet } from "@/contexts/WalletContext";
 
 const complianceLayers = [
@@ -39,11 +38,11 @@ const complianceLayers = [
 ];
 
 const statusConfig = {
-  verified: { color: "bg-green-500/10 text-green-400 border-green-500/20", label: "Verified", Icon: CheckCircle2 },
-  clear: { color: "bg-green-500/10 text-green-400 border-green-500/20", label: "Clear", Icon: CheckCircle2 },
-  compliant: { color: "bg-green-500/10 text-green-400 border-green-500/20", label: "Compliant", Icon: CheckCircle2 },
-  recorded: { color: "bg-primary/10 text-primary border-primary/20", label: "Recorded", Icon: CheckCircle2 },
-  pending: { color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20", label: "Pending", Icon: AlertCircle },
+  verified: { color: "bg-green-50 text-green-700 ring-green-200", label: "Verified", Icon: CheckCircle2 },
+  clear: { color: "bg-green-50 text-green-700 ring-green-200", label: "Clear", Icon: CheckCircle2 },
+  compliant: { color: "bg-green-50 text-green-700 ring-green-200", label: "Compliant", Icon: CheckCircle2 },
+  recorded: { color: "bg-amber-50 text-amber-700 ring-amber-200", label: "Recorded", Icon: CheckCircle2 },
+  pending: { color: "bg-yellow-50 text-yellow-700 ring-yellow-200", label: "Pending", Icon: AlertCircle },
 };
 
 const CompliancePanel = () => {
@@ -51,7 +50,7 @@ const CompliancePanel = () => {
 
   if (!connected) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
         <p className="text-muted-foreground font-sans">Connect wallet to view compliance status.</p>
       </div>
     );
@@ -67,18 +66,18 @@ const CompliancePanel = () => {
       </div>
 
       {/* Overall Badge */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="shadow-sm border-green-200 bg-green-50/50">
         <CardContent className="p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Shield size={24} className="text-primary" />
+          <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+            <Shield size={24} className="text-green-600" />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="text-lg font-sans font-bold text-foreground">Fully Compliant</p>
             <p className="text-sm text-muted-foreground font-sans">All checks passed. Vault access is enabled.</p>
           </div>
-          <Badge className="ml-auto bg-green-500/10 text-green-400 border-green-500/20 font-sans text-sm px-4 py-1">
+          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-sans font-semibold text-green-700 ring-1 ring-inset ring-green-200">
             Active
-          </Badge>
+          </span>
         </CardContent>
       </Card>
 
@@ -87,23 +86,23 @@ const CompliancePanel = () => {
         {complianceLayers.map((layer) => {
           const config = statusConfig[layer.status];
           return (
-            <Card key={layer.id} className="border-border/50 bg-card/80">
+            <Card key={layer.id} className="shadow-sm">
               <CardContent className="p-5">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">
-                      <config.Icon size={16} className="text-green-400" />
+                      <config.Icon size={16} className="text-green-600" />
                       <h3 className="text-sm font-sans font-semibold text-foreground">{layer.title}</h3>
                     </div>
-                    <p className="text-xs text-muted-foreground font-sans">{layer.detail}</p>
+                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">{layer.detail}</p>
                     <div className="flex items-center gap-3 mt-2">
-                      <span className="text-[10px] text-muted-foreground/60 font-mono">{layer.hash}</span>
-                      <span className="text-[10px] text-muted-foreground/40 font-sans">via {layer.provider}</span>
+                      <span className="text-[10px] text-muted-foreground/60 font-mono bg-muted px-2 py-0.5 rounded">{layer.hash}</span>
+                      <span className="text-[10px] text-muted-foreground font-sans">via {layer.provider}</span>
                     </div>
                   </div>
-                  <Badge className={`${config.color} font-sans text-xs shrink-0`}>
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-sans font-medium ring-1 ring-inset shrink-0 ${config.color}`}>
                     {config.label}
-                  </Badge>
+                  </span>
                 </div>
               </CardContent>
             </Card>

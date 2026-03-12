@@ -1,7 +1,6 @@
 import { FileText, Download, Eye, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useWallet } from "@/contexts/WalletContext";
 import { generateReport } from "@/lib/generateReport";
 import { useState } from "react";
@@ -24,7 +23,6 @@ const ReportsPanel = () => {
     if (!address) return;
     setGenerating(report.id);
     try {
-      // Small delay for UX feedback
       await new Promise((r) => setTimeout(r, 400));
       generateReport({ type: report.type, walletAddress: address, date: report.date });
       toast.success(`${report.type} report downloaded`);
@@ -49,7 +47,7 @@ const ReportsPanel = () => {
 
   if (!connected) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
         <p className="text-muted-foreground font-sans">Connect wallet to access reports.</p>
       </div>
     );
@@ -77,7 +75,7 @@ const ReportsPanel = () => {
 
       <div className="space-y-3">
         {reports.map((report) => (
-          <Card key={report.id} className="border-border/50 bg-card/80">
+          <Card key={report.id} className="shadow-sm">
             <CardContent className="p-5 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                 <FileText size={18} className="text-muted-foreground" />
@@ -86,7 +84,9 @@ const ReportsPanel = () => {
                 <p className="text-sm font-sans font-medium text-foreground truncate">{report.name}</p>
                 <p className="text-xs text-muted-foreground font-sans">{report.date}</p>
               </div>
-              <Badge variant="outline" className="font-sans text-xs shrink-0">{report.type}</Badge>
+              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-sans font-medium ring-1 ring-inset ring-border text-muted-foreground shrink-0">
+                {report.type}
+              </span>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"

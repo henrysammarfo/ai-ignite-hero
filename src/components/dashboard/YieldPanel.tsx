@@ -1,4 +1,4 @@
-import { TrendingUp, DollarSign } from "lucide-react";
+import { TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWallet } from "@/contexts/WalletContext";
 
@@ -15,7 +15,7 @@ const YieldPanel = () => {
 
   if (!connected) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
         <p className="text-muted-foreground font-sans">Connect wallet to view yield data.</p>
       </div>
     );
@@ -30,50 +30,43 @@ const YieldPanel = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-5">
-            <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-2">Total Earned</p>
-            <p className="text-2xl font-bold font-sans text-foreground">$4,109.58</p>
-            <p className="text-xs text-primary font-sans mt-1">Lifetime</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-5">
-            <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-2">Current APY</p>
-            <p className="text-2xl font-bold font-sans text-primary">8.2%</p>
-            <p className="text-xs text-muted-foreground font-sans mt-1">Pyth oracle feed</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-5">
-            <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-2">Next Payout</p>
-            <p className="text-2xl font-bold font-sans text-foreground">~$315</p>
-            <p className="text-xs text-muted-foreground font-sans mt-1">in 2d 14h</p>
-          </CardContent>
-        </Card>
+        {[
+          { label: "Total Earned", value: "$4,109.58", sub: "Lifetime", highlight: false },
+          { label: "Current APY", value: "8.2%", sub: "Pyth oracle feed", highlight: true },
+          { label: "Next Payout", value: "~$315", sub: "in 2d 14h", highlight: false },
+        ].map((card) => (
+          <Card key={card.label} className="shadow-sm">
+            <CardContent className="p-5">
+              <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-2">{card.label}</p>
+              <p className={`text-2xl font-bold font-sans ${card.highlight ? "text-primary" : "text-foreground"}`}>{card.value}</p>
+              <p className="text-xs text-muted-foreground font-sans mt-1">{card.sub}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Yield History */}
-      <Card className="border-border/50 bg-card/80">
+      <Card className="shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
-            <TrendingUp size={16} className="text-primary" />
+            <Activity size={16} className="text-muted-foreground" />
             Payout History
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-1">
-            <div className="grid grid-cols-4 text-xs text-muted-foreground font-sans uppercase tracking-wider py-2 border-b border-border/30">
+          <div className="space-y-0">
+            {/* Table header */}
+            <div className="grid grid-cols-4 text-xs text-muted-foreground font-sans uppercase tracking-wider py-2 border-b border-border">
               <span>Date</span>
               <span>Amount</span>
               <span>APY</span>
               <span>Source</span>
             </div>
             {yieldHistory.map((row, i) => (
-              <div key={i} className="grid grid-cols-4 text-sm font-sans py-3 border-b border-border/20 last:border-0">
+              <div key={i} className="grid grid-cols-4 text-sm font-sans py-3 border-b border-border last:border-0 items-center">
                 <span className="text-muted-foreground">{row.date}</span>
                 <span className="text-foreground font-medium">{row.amount}</span>
-                <span className="text-primary">{row.apy}</span>
+                <span className="text-primary font-medium">{row.apy}</span>
                 <span className="text-muted-foreground text-xs">{row.source}</span>
               </div>
             ))}

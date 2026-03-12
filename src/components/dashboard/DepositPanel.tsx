@@ -3,7 +3,6 @@ import { ArrowDownToLine, Info, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useWallet } from "@/contexts/WalletContext";
 
 const DepositPanel = () => {
@@ -13,7 +12,7 @@ const DepositPanel = () => {
 
   if (!connected) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
         <p className="text-muted-foreground font-sans">Connect wallet to make deposits.</p>
       </div>
     );
@@ -35,29 +34,26 @@ const DepositPanel = () => {
       </div>
 
       {/* Vault Info */}
-      <Card className="border-border/50 bg-card/80">
+      <Card className="shadow-sm">
         <CardContent className="p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Vault</span>
-            <Badge variant="outline" className="font-mono text-xs">Fortis USDC Vault</Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Current APY</span>
-            <span className="text-sm font-sans font-bold text-primary">8.2%</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Min Deposit</span>
-            <span className="text-sm font-sans text-foreground">$10,000 USDC</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Lock Period</span>
-            <span className="text-sm font-sans text-foreground">30 days</span>
-          </div>
+          {[
+            { label: "Vault", value: "Fortis USDC Vault" },
+            { label: "Current APY", value: "8.2%", highlight: true },
+            { label: "Min Deposit", value: "$10,000 USDC" },
+            { label: "Lock Period", value: "30 days" },
+          ].map((row) => (
+            <div key={row.label} className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-sans uppercase tracking-wider">{row.label}</span>
+              <span className={`text-sm font-sans font-medium ${row.highlight ? "text-primary font-bold" : "text-foreground"}`}>
+                {row.value}
+              </span>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
       {/* Deposit Form */}
-      <Card className="border-border/50 bg-card/80">
+      <Card className="shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
             <ArrowDownToLine size={16} className="text-primary" />
@@ -75,7 +71,7 @@ const DepositPanel = () => {
                 placeholder="50,000"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="font-sans text-lg pr-16 bg-background/50"
+                className="font-sans text-lg pr-16"
                 min="10000"
               />
               <button
@@ -87,7 +83,7 @@ const DepositPanel = () => {
             </div>
           </div>
 
-          <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2">
+          <div className="rounded-lg bg-muted p-3 flex items-start gap-2">
             <Info size={14} className="text-muted-foreground mt-0.5 shrink-0" />
             <p className="text-xs text-muted-foreground font-sans">
               Deposits are subject to compliance verification. KYC, AML screening, and Travel Rule checks are enforced before funds enter the vault.
@@ -95,7 +91,7 @@ const DepositPanel = () => {
           </div>
 
           {submitted ? (
-            <div className="flex items-center gap-2 text-green-400 justify-center py-3">
+            <div className="flex items-center gap-2 text-green-600 justify-center py-3">
               <CheckCircle2 size={18} />
               <span className="text-sm font-sans font-medium">Deposit submitted — processing compliance checks</span>
             </div>
