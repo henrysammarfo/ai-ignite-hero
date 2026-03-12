@@ -106,8 +106,9 @@ const HeroSection = () => {
           className="flex flex-col sm:flex-row items-center gap-6"
         >
           {/* Primary Button */}
-          <button
-            className="group flex items-center gap-3 pl-6 pr-2 py-2 rounded-full bg-primary hover:shadow-[0_0_20px_hsl(43_72%_55%/0.3)] hover:scale-105 transition-all duration-300"
+          <a
+            href="/login"
+            className="group flex items-center gap-3 pl-6 pr-2 py-2 rounded-full bg-primary hover:shadow-[0_0_20px_hsl(43_72%_55%/0.3)] hover:scale-105 transition-all duration-300 no-underline"
           >
             <span
               className="font-medium text-lg text-primary-foreground"
@@ -118,7 +119,7 @@ const HeroSection = () => {
             <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/20 group-hover:bg-primary-foreground/30 transition-colors">
               <ArrowRight size={20} className="text-primary-foreground" />
             </span>
-          </button>
+          </a>
 
           {/* Secondary Button */}
           <a
