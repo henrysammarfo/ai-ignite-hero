@@ -1,5 +1,6 @@
 import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
+import { useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -93,17 +94,18 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
 
 const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => {
   const isMobile = useIsMobile();
+  const { themeClass } = useDashboardTheme();
   const [open, setOpen] = useState(false);
 
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="fixed top-4 left-4 z-50 md:hidden shadow-sm bg-card">
+          <Button variant="outline" size="icon" className={`fixed top-4 left-4 z-50 md:hidden shadow-sm ${themeClass} bg-card`}>
             <Menu size={18} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0 flex flex-col dashboard-theme bg-card">
+        <SheetContent side="left" className={`w-64 p-0 flex flex-col ${themeClass} bg-card`}>
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <SidebarInner activeTab={activeTab} onTabChange={onTabChange} onNavigate={() => setOpen(false)} />
         </SheetContent>
