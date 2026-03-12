@@ -34,7 +34,7 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section className="relative w-full min-h-screen bg-[#000000] text-white overflow-hidden">
+    <section className="relative w-full min-h-screen bg-background text-foreground overflow-hidden">
       {/* Background Video */}
       <video
         ref={videoRef}
@@ -42,18 +42,18 @@ const HeroSection = () => {
         loop
         playsInline
         poster={posterSrc}
-        className="absolute inset-0 w-full h-full object-cover opacity-60"
+        className="absolute inset-0 w-full h-full object-cover opacity-40"
       />
 
       {/* Video Overlay */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
 
       {/* Decorative Gradients */}
       <div
-        className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full bg-blue-900/20 blur-[120px] mix-blend-screen pointer-events-none"
+        className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px] mix-blend-screen pointer-events-none"
       />
       <div
-        className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full bg-indigo-900/20 blur-[120px] mix-blend-screen pointer-events-none"
+        className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px] mix-blend-screen pointer-events-none"
       />
 
       {/* Content */}
@@ -74,7 +74,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="font-sans font-semibold text-6xl sm:text-8xl lg:text-[136px] leading-[0.9] tracking-tighter bg-gradient-to-b from-white via-white to-[#b4c0ff] bg-clip-text text-transparent"
+          className="font-sans font-semibold text-6xl sm:text-8xl lg:text-[136px] leading-[0.9] tracking-tighter bg-gradient-to-b from-primary via-primary to-foreground bg-clip-text text-transparent"
           style={{ fontFamily: "var(--font-sans)" }}
         >
           Fortis
@@ -102,23 +102,23 @@ const HeroSection = () => {
         >
           {/* Primary Button */}
           <button
-            className="group flex items-center gap-3 pl-6 pr-2 py-2 rounded-full bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 transition-all duration-300"
+            className="group flex items-center gap-3 pl-6 pr-2 py-2 rounded-full bg-primary hover:shadow-[0_0_20px_hsl(43_72%_55%/0.3)] hover:scale-105 transition-all duration-300"
           >
             <span
-              className="font-medium text-lg text-[#0a0400]"
+              className="font-medium text-lg text-primary-foreground"
               style={{ fontFamily: "var(--font-sans)" }}
             >
               Launch App
             </span>
-            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3054ff] group-hover:bg-[#2040e0] transition-colors">
-              <ArrowRight size={20} className="text-white" />
+            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/20 group-hover:bg-primary-foreground/30 transition-colors">
+              <ArrowRight size={20} className="text-primary-foreground" />
             </span>
           </button>
 
           {/* Secondary Button */}
           <a
             href="#"
-            className="group flex items-center gap-2 px-4 py-2 rounded-lg text-white/70 hover:text-white backdrop-blur-sm hover:bg-white/5 transition-all"
+            className="group flex items-center gap-2 px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground backdrop-blur-sm hover:bg-secondary/50 transition-all"
             style={{ fontFamily: "var(--font-sans)" }}
           >
             Read the Docs
