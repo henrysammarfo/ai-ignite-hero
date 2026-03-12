@@ -66,7 +66,7 @@ const HeroSection = () => {
           className="font-serif text-3xl sm:text-5xl lg:text-[48px] leading-[1.1] text-white"
           style={{ fontFamily: "var(--font-serif)" }}
         >
-          Design at the speed of thought
+          Institutional yield, on-chain compliance
         </motion.p>
 
         {/* Main Headline */}
@@ -77,7 +77,7 @@ const HeroSection = () => {
           className="font-sans font-semibold text-6xl sm:text-8xl lg:text-[136px] leading-[0.9] tracking-tighter bg-gradient-to-b from-white via-white to-[#b4c0ff] bg-clip-text text-transparent"
           style={{ fontFamily: "var(--font-sans)" }}
         >
-          Build Faster
+          Fortis
         </motion.h1>
 
         {/* Subheadline */}
@@ -88,8 +88,9 @@ const HeroSection = () => {
           className="font-sans text-lg sm:text-[20px] leading-[1.65] text-white max-w-xl"
           style={{ fontFamily: "var(--font-sans)" }}
         >
-          Create fully functional, SEO-optimized websites in seconds with our
-          advanced AI engine.
+          Permissioned DeFi vaults on Solana. Earn 4–12% APY on stablecoin
+          holdings with KYC, AML, and Travel Rule compliance enforced at the
+          smart contract level.
         </motion.p>
 
         {/* CTA Buttons */}
@@ -107,7 +108,7 @@ const HeroSection = () => {
               className="font-medium text-lg text-[#0a0400]"
               style={{ fontFamily: "var(--font-sans)" }}
             >
-              Start Building Free
+              Launch App
             </span>
             <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3054ff] group-hover:bg-[#2040e0] transition-colors">
               <ArrowRight size={20} className="text-white" />
@@ -120,7 +121,7 @@ const HeroSection = () => {
             className="group flex items-center gap-2 px-4 py-2 rounded-lg text-white/70 hover:text-white backdrop-blur-sm hover:bg-white/5 transition-all"
             style={{ fontFamily: "var(--font-sans)" }}
           >
-            See Examples
+            Read the Docs
             <ArrowRight
               size={16}
               className="group-hover:translate-x-1 transition-transform"
