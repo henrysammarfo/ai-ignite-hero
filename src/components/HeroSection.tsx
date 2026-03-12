@@ -34,7 +34,7 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section className="relative w-full min-h-screen bg-[#000000] text-white overflow-hidden">
+    <section className="relative w-full min-h-screen bg-background text-foreground overflow-hidden">
       {/* Background Video */}
       <video
         ref={videoRef}
@@ -42,18 +42,18 @@ const HeroSection = () => {
         loop
         playsInline
         poster={posterSrc}
-        className="absolute inset-0 w-full h-full object-cover opacity-60"
+        className="absolute inset-0 w-full h-full object-cover opacity-40"
       />
 
       {/* Video Overlay */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
 
       {/* Decorative Gradients */}
       <div
-        className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full bg-blue-900/20 blur-[120px] mix-blend-screen pointer-events-none"
+        className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px] mix-blend-screen pointer-events-none"
       />
       <div
-        className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full bg-indigo-900/20 blur-[120px] mix-blend-screen pointer-events-none"
+        className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px] mix-blend-screen pointer-events-none"
       />
 
       {/* Content */}
