@@ -38,11 +38,11 @@ const complianceLayers = [
 ];
 
 const statusConfig = {
-  verified: { color: "bg-green-50 text-green-700 ring-green-200", label: "Verified", Icon: CheckCircle2 },
-  clear: { color: "bg-green-50 text-green-700 ring-green-200", label: "Clear", Icon: CheckCircle2 },
-  compliant: { color: "bg-green-50 text-green-700 ring-green-200", label: "Compliant", Icon: CheckCircle2 },
-  recorded: { color: "bg-amber-50 text-amber-700 ring-amber-200", label: "Recorded", Icon: CheckCircle2 },
-  pending: { color: "bg-yellow-50 text-yellow-700 ring-yellow-200", label: "Pending", Icon: AlertCircle },
+  verified: { color: "bg-primary/10 text-primary ring-primary/20", label: "Verified", Icon: CheckCircle2 },
+  clear: { color: "bg-primary/10 text-primary ring-primary/20", label: "Clear", Icon: CheckCircle2 },
+  compliant: { color: "bg-primary/10 text-primary ring-primary/20", label: "Compliant", Icon: CheckCircle2 },
+  recorded: { color: "bg-accent/10 text-accent ring-accent/20", label: "Recorded", Icon: CheckCircle2 },
+  pending: { color: "bg-destructive/10 text-destructive ring-destructive/20", label: "Pending", Icon: AlertCircle },
 };
 
 const CompliancePanel = () => {
