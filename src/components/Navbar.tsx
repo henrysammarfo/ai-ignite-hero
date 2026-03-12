@@ -109,12 +109,12 @@ const Navbar = () => {
             >
               Book A Demo
             </button>
-            <button className="hidden md:flex items-center gap-2 bg-primary text-primary-foreground rounded-full pl-5 pr-1.5 py-1.5 font-sans font-semibold text-sm hover:shadow-[0_0_20px_hsl(43_72%_55%/0.25)] transition-all duration-300 group">
+            <a href="/dashboard" className="hidden md:flex items-center gap-2 bg-primary text-primary-foreground rounded-full pl-5 pr-1.5 py-1.5 font-sans font-semibold text-sm hover:shadow-[0_0_20px_hsl(43_72%_55%/0.25)] transition-all duration-300 group no-underline">
               <span>Launch App</span>
               <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary-foreground/20 group-hover:bg-primary-foreground/30 transition-colors">
                 <ArrowRight size={14} className="text-primary-foreground" />
               </span>
-            </button>
+            </a>
 
             {/* Hamburger — mobile */}
             <button
@@ -157,9 +157,9 @@ const Navbar = () => {
               Book A Demo
             </a>
 
-            <button className="mt-2 bg-primary text-primary-foreground rounded-full px-6 py-3.5 font-sans font-semibold text-base hover:bg-primary/90 transition-colors w-full">
+            <a href="/dashboard" className="mt-2 bg-primary text-primary-foreground rounded-full px-6 py-3.5 font-sans font-semibold text-base hover:bg-primary/90 transition-colors w-full block text-center no-underline">
               Launch App
-            </button>
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
