@@ -1,15 +1,44 @@
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { useState, useEffect } from "react";
+import { Menu, X, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence, useMotionValueEvent, useScroll } from "motion/react";
 
 const navLinks = [
   { label: "Protocol", target: "features" },
+  { label: "How It Works", target: "how-it-works" },
   { label: "Security", target: "security" },
   { label: "Ecosystem", target: "ecosystem" },
 ];
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("");
+  const { scrollY } = useScroll();
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    setScrolled(latest > 50);
+  });
+
+  // Track active section
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: "-40% 0px -55% 0px" }
+    );
+
+    navLinks.forEach((link) => {
+      const el = document.getElementById(link.target);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const scrollTo = (id: string) => {
     setOpen(false);
@@ -21,47 +50,83 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full z-50 bg-transparent px-6 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <a href="/" className="font-serif text-xl font-bold text-primary tracking-tight" style={{ fontFamily: "var(--font-serif)" }}>
-          Fortis
-        </a>
-
-        {/* Center Links — desktop */}
-        <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => scrollTo(item.target)}
-              className="font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Right Section */}
-        <div className="flex items-center gap-4">
+      <motion.nav
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+          scrolled
+            ? "bg-background/80 backdrop-blur-xl border-b border-border/50 py-3"
+            : "bg-transparent py-5"
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
+          {/* Logo */}
           <a
-            href="#"
-            className="hidden sm:block font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            href="/"
+            className="font-serif text-xl font-bold text-primary tracking-tight flex items-center gap-2"
+            style={{ fontFamily: "var(--font-serif)" }}
           >
-            Book A Demo
+            Fortis
           </a>
-          <button className="hidden md:block bg-primary text-primary-foreground rounded-full px-5 py-2.5 font-sans font-semibold text-sm hover:bg-primary/90 transition-colors">
-            Launch App
-          </button>
 
-          {/* Hamburger — mobile */}
-          <button
-            onClick={() => setOpen(!open)}
-            className="md:hidden text-foreground"
-            aria-label="Toggle menu"
-          >
-            {open ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          {/* Center pill nav — desktop */}
+          <div className="hidden md:flex items-center gap-1 rounded-full border border-border/50 bg-card/50 backdrop-blur-sm px-2 py-1.5">
+            {navLinks.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => scrollTo(item.target)}
+                className={`relative font-sans text-sm font-medium px-4 py-1.5 rounded-full transition-all duration-300 ${
+                  activeSection === item.target
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {activeSection === item.target && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute inset-0 bg-primary rounded-full"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10">{item.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Right Section */}
+          <div className="flex items-center gap-3">
+            <a
+              href="#"
+              className="hidden lg:block font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Docs
+            </a>
+            <div className="hidden lg:block w-px h-4 bg-border" />
+            <button
+              onClick={() => scrollTo("how-it-works")}
+              className="hidden sm:flex items-center gap-2 font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Book A Demo
+            </button>
+            <button className="hidden md:flex items-center gap-2 bg-primary text-primary-foreground rounded-full pl-5 pr-1.5 py-1.5 font-sans font-semibold text-sm hover:shadow-[0_0_20px_hsl(43_72%_55%/0.25)] transition-all duration-300 group">
+              <span>Launch App</span>
+              <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary-foreground/20 group-hover:bg-primary-foreground/30 transition-colors">
+                <ArrowRight size={14} className="text-primary-foreground" />
+              </span>
+            </button>
+
+            {/* Hamburger — mobile */}
+            <button
+              onClick={() => setOpen(!open)}
+              className="md:hidden text-foreground"
+              aria-label="Toggle menu"
+            >
+              {open ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Mobile Menu */}
       <AnimatePresence>
