@@ -98,14 +98,14 @@ const Navbar = () => {
           <div className="flex items-center gap-3">
             <a
               href="#"
-              className="hidden lg:block font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden md:block font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Docs
             </a>
-            <div className="hidden lg:block w-px h-4 bg-border" />
+            <div className="hidden md:block w-px h-4 bg-border" />
             <button
               onClick={() => scrollTo("how-it-works")}
-              className="hidden sm:flex items-center gap-2 font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden md:flex items-center gap-2 rounded-full border border-border/50 px-4 py-1.5 font-sans text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-300"
             >
               Book A Demo
             </button>
