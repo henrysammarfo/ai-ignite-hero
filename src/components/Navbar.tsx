@@ -157,9 +157,9 @@ const Navbar = () => {
               Book A Demo
             </a>
 
-            <button className="mt-2 bg-primary text-primary-foreground rounded-full px-6 py-3.5 font-sans font-semibold text-base hover:bg-primary/90 transition-colors w-full">
+            <a href="/dashboard" className="mt-2 bg-primary text-primary-foreground rounded-full px-6 py-3.5 font-sans font-semibold text-base hover:bg-primary/90 transition-colors w-full block text-center no-underline">
               Launch App
-            </button>
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
