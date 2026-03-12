@@ -38,11 +38,11 @@ const complianceLayers = [
 ];
 
 const statusConfig = {
-  verified: { color: "bg-green-50 text-green-700 ring-green-200", label: "Verified", Icon: CheckCircle2 },
-  clear: { color: "bg-green-50 text-green-700 ring-green-200", label: "Clear", Icon: CheckCircle2 },
-  compliant: { color: "bg-green-50 text-green-700 ring-green-200", label: "Compliant", Icon: CheckCircle2 },
-  recorded: { color: "bg-amber-50 text-amber-700 ring-amber-200", label: "Recorded", Icon: CheckCircle2 },
-  pending: { color: "bg-yellow-50 text-yellow-700 ring-yellow-200", label: "Pending", Icon: AlertCircle },
+  verified: { color: "bg-primary/10 text-primary ring-primary/20", label: "Verified", Icon: CheckCircle2 },
+  clear: { color: "bg-primary/10 text-primary ring-primary/20", label: "Clear", Icon: CheckCircle2 },
+  compliant: { color: "bg-primary/10 text-primary ring-primary/20", label: "Compliant", Icon: CheckCircle2 },
+  recorded: { color: "bg-accent/10 text-accent ring-accent/20", label: "Recorded", Icon: CheckCircle2 },
+  pending: { color: "bg-destructive/10 text-destructive ring-destructive/20", label: "Pending", Icon: AlertCircle },
 };
 
 const CompliancePanel = () => {
@@ -66,16 +66,16 @@ const CompliancePanel = () => {
       </div>
 
       {/* Overall Badge */}
-      <Card className="shadow-sm border-green-200 bg-green-50/50">
+      <Card className="shadow-sm border-primary/20 bg-primary/5">
         <CardContent className="p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-            <Shield size={24} className="text-green-600" />
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Shield size={24} className="text-primary" />
           </div>
           <div className="flex-1">
             <p className="text-lg font-sans font-bold text-foreground">Fully Compliant</p>
             <p className="text-sm text-muted-foreground font-sans">All checks passed. Vault access is enabled.</p>
           </div>
-          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-sans font-semibold text-green-700 ring-1 ring-inset ring-green-200">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-sans font-semibold text-primary ring-1 ring-inset ring-primary/20">
             Active
           </span>
         </CardContent>
@@ -91,7 +91,7 @@ const CompliancePanel = () => {
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">
-                      <config.Icon size={16} className="text-green-600" />
+                      <config.Icon size={16} className="text-primary" />
                       <h3 className="text-sm font-sans font-semibold text-foreground">{layer.title}</h3>
                     </div>
                     <p className="text-xs text-muted-foreground font-sans leading-relaxed">{layer.detail}</p>
