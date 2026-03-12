@@ -63,7 +63,12 @@ const yieldHistory = [
 
 const YieldPanel = () => {
   const { connected } = useWallet();
+  const [range, setRange] = useState<TimeRange>("3M");
 
+  const chartData = useMemo(() => {
+    const points = timeRanges.find((r) => r.label === range)!.points;
+    return allApyData.slice(-points);
+  }, [range]);
   if (!connected) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
