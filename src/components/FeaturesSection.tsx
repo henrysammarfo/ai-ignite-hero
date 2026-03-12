@@ -1,4 +1,5 @@
-import { motion } from "motion/react";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
 import { ShieldCheck, Fingerprint, ArrowLeftRight, FileSearch } from "lucide-react";
 
 const features = [
@@ -29,13 +30,22 @@ const features = [
 ];
 
 const FeaturesSection = () => {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
+  const glowOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0, 0.12, 0]);
+
   return (
-    <section className="relative bg-background py-28 px-6 overflow-hidden">
-      {/* Decorative line accent */}
+    <section ref={ref} className="relative bg-background py-28 px-6 overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-      <div className="max-w-6xl mx-auto">
-        {/* Section Header */}
+      {/* Parallax glow */}
+      <motion.div
+        style={{ y: bgY, opacity: glowOpacity }}
+        className="absolute top-[-20%] left-[30%] w-[500px] h-[500px] rounded-full bg-primary blur-[160px] pointer-events-none"
+      />
+
+      <div className="relative max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -54,7 +64,6 @@ const FeaturesSection = () => {
           </p>
         </motion.div>
 
-        {/* Feature Cards — asymmetric grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border/50 rounded-2xl overflow-hidden">
           {features.map((feature, index) => (
             <motion.div

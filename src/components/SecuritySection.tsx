@@ -1,4 +1,5 @@
-import { motion } from "motion/react";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
 import { Lock, Layers, Eye, Server } from "lucide-react";
 
 const layers = [
@@ -29,12 +30,22 @@ const layers = [
 ];
 
 const SecuritySection = () => {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "-12%"]);
+  const glowOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0, 0.08, 0]);
+
   return (
-    <section className="relative bg-background py-28 px-6 overflow-hidden">
+    <section ref={ref} className="relative bg-background py-28 px-6 overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-      <div className="max-w-6xl mx-auto">
-        {/* Section Header — left aligned */}
+      {/* Parallax glow — opposite direction */}
+      <motion.div
+        style={{ y: bgY, opacity: glowOpacity }}
+        className="absolute bottom-[-10%] right-[20%] w-[600px] h-[600px] rounded-full bg-primary blur-[180px] pointer-events-none"
+      />
+
+      <div className="relative max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -53,7 +64,6 @@ const SecuritySection = () => {
           </p>
         </motion.div>
 
-        {/* Security Cards — full bleed grid with gap lines */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border/50 rounded-2xl overflow-hidden">
           {layers.map((layer, index) => (
             <motion.div

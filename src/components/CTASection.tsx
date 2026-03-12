@@ -1,10 +1,14 @@
-import { useState } from "react";
-import { motion } from "motion/react";
+import { useRef, useState } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
 import { ArrowRight } from "lucide-react";
 
 const CTASection = () => {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const glowScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1.2, 0.8]);
+  const glowOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0, 0.1, 0]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,11 +18,12 @@ const CTASection = () => {
   };
 
   return (
-    <section className="relative bg-background py-28 px-6">
-      {/* Decorative glow */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-[600px] h-[300px] rounded-full bg-primary/5 blur-[100px]" />
-      </div>
+    <section ref={ref} className="relative bg-background py-28 px-6 overflow-hidden">
+      {/* Parallax glow */}
+      <motion.div
+        style={{ scale: glowScale, opacity: glowOpacity }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-primary blur-[140px] pointer-events-none"
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 30 }}
