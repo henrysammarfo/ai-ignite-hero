@@ -102,16 +102,16 @@ const HeroSection = () => {
         >
           {/* Primary Button */}
           <button
-            className="group flex items-center gap-3 pl-6 pr-2 py-2 rounded-full bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 transition-all duration-300"
+            className="group flex items-center gap-3 pl-6 pr-2 py-2 rounded-full bg-primary hover:shadow-[0_0_20px_hsl(43_72%_55%/0.3)] hover:scale-105 transition-all duration-300"
           >
             <span
-              className="font-medium text-lg text-[#0a0400]"
+              className="font-medium text-lg text-primary-foreground"
               style={{ fontFamily: "var(--font-sans)" }}
             >
               Launch App
             </span>
-            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3054ff] group-hover:bg-[#2040e0] transition-colors">
-              <ArrowRight size={20} className="text-white" />
+            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/20 group-hover:bg-primary-foreground/30 transition-colors">
+              <ArrowRight size={20} className="text-primary-foreground" />
             </span>
           </button>
 
