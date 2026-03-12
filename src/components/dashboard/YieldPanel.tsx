@@ -1,10 +1,30 @@
+import { useState, useMemo } from "react";
 import { TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useWallet } from "@/contexts/WalletContext";
 
-const apyChartData = [
+const allApyData = [
+  { week: "Mar 15", apy: 6.8 },
+  { week: "Apr 1", apy: 7.0 },
+  { week: "Apr 15", apy: 6.9 },
+  { week: "May 1", apy: 7.2 },
+  { week: "May 15", apy: 7.1 },
+  { week: "Jun 1", apy: 7.4 },
+  { week: "Jun 15", apy: 7.0 },
+  { week: "Jul 1", apy: 7.3 },
+  { week: "Jul 15", apy: 7.6 },
+  { week: "Aug 1", apy: 7.2 },
+  { week: "Aug 15", apy: 7.5 },
+  { week: "Sep 1", apy: 7.8 },
+  { week: "Sep 15", apy: 7.3 },
+  { week: "Oct 1", apy: 7.1 },
+  { week: "Oct 15", apy: 7.4 },
+  { week: "Nov 1", apy: 7.6 },
+  { week: "Nov 15", apy: 7.2 },
+  { week: "Dec 1", apy: 7.0 },
+  { week: "Dec 15", apy: 7.3 },
   { week: "Jan 6", apy: 7.4 },
   { week: "Jan 13", apy: 7.6 },
   { week: "Jan 20", apy: 7.8 },
@@ -16,6 +36,15 @@ const apyChartData = [
   { week: "Mar 3", apy: 7.9 },
   { week: "Mar 10", apy: 8.2 },
 ];
+
+const timeRanges = [
+  { label: "1M", points: 4 },
+  { label: "3M", points: 10 },
+  { label: "6M", points: 19 },
+  { label: "1Y", points: 39 },
+] as const;
+
+type TimeRange = typeof timeRanges[number]["label"];
 
 const chartConfig = {
   apy: {
@@ -34,7 +63,12 @@ const yieldHistory = [
 
 const YieldPanel = () => {
   const { connected } = useWallet();
+  const [range, setRange] = useState<TimeRange>("3M");
 
+  const chartData = useMemo(() => {
+    const points = timeRanges.find((r) => r.label === range)!.points;
+    return allApyData.slice(-points);
+  }, [range]);
   if (!connected) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
@@ -69,15 +103,30 @@ const YieldPanel = () => {
 
       {/* APY Chart */}
       <Card className="shadow-sm">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
             <TrendingUp size={16} className="text-muted-foreground" />
-            APY Performance (10 weeks)
+            APY Performance
           </CardTitle>
+          <div className="flex gap-1">
+            {timeRanges.map((r) => (
+              <button
+                key={r.label}
+                onClick={() => setRange(r.label)}
+                className={`px-2.5 py-1 text-xs font-sans font-medium rounded-md transition-colors ${
+                  range === r.label
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-[250px] w-full">
-            <AreaChart data={apyChartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="apyGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
