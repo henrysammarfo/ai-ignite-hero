@@ -1,6 +1,28 @@
 import { TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useWallet } from "@/contexts/WalletContext";
+
+const apyChartData = [
+  { week: "Jan 6", apy: 7.4 },
+  { week: "Jan 13", apy: 7.6 },
+  { week: "Jan 20", apy: 7.8 },
+  { week: "Jan 27", apy: 7.5 },
+  { week: "Feb 3", apy: 7.9 },
+  { week: "Feb 10", apy: 8.3 },
+  { week: "Feb 17", apy: 7.7 },
+  { week: "Feb 24", apy: 8.1 },
+  { week: "Mar 3", apy: 7.9 },
+  { week: "Mar 10", apy: 8.2 },
+];
+
+const chartConfig = {
+  apy: {
+    label: "APY %",
+    color: "hsl(var(--primary))",
+  },
+};
 
 const yieldHistory = [
   { date: "Mar 10, 2026", amount: "$312.40", apy: "8.2%", source: "Marinade SOL Staking" },
