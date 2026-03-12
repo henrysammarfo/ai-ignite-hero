@@ -1,4 +1,5 @@
 import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useWallet } from "@/contexts/WalletContext";
 import { useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,17 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-3">
+        <button
+          onClick={() => {
+            disconnect();
+            window.location.href = "/login";
+          }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium text-destructive hover:bg-destructive/10 transition-all duration-200"
+        >
+          <LogOut size={16} />
+          Log Out
+        </button>
         <p className="text-[10px] text-muted-foreground/50 font-sans">Fortis v0.1.0 · Devnet</p>
       </div>
     </div>
