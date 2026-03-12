@@ -30,7 +30,10 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <section className="relative bg-background py-28 px-6">
+    <section className="relative bg-background py-28 px-6 overflow-hidden">
+      {/* Decorative line accent */}
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -38,21 +41,21 @@ const FeaturesSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-20"
+          className="mb-20"
         >
-          <p className="text-primary font-sans text-sm font-semibold tracking-widest uppercase mb-4">
+          <p className="text-primary font-sans text-xs font-semibold tracking-[0.2em] uppercase mb-4">
             Compliance Infrastructure
           </p>
-          <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-foreground leading-[1.1]">
+          <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-foreground leading-[1.1] max-w-2xl">
             Regulation-native by design
           </h2>
-          <p className="mt-6 text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-6 text-muted-foreground text-lg max-w-xl leading-relaxed">
             Every compliance layer is enforced at the smart contract level — not bolted on as an afterthought.
           </p>
         </motion.div>
 
-        {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Feature Cards — asymmetric grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border/50 rounded-2xl overflow-hidden">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
@@ -60,21 +63,19 @@ const FeaturesSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1, duration: 0.5 }}
-              className="group relative rounded-2xl border border-border bg-card p-8 hover:border-primary/30 transition-all duration-300"
+              className="group bg-background p-10 md:p-12 flex flex-col gap-5 hover:bg-card transition-colors duration-500"
             >
-              <div className="flex items-start gap-5">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <feature.icon size={24} className="text-primary" />
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-500">
+                  <feature.icon size={20} className="text-primary" />
                 </div>
-                <div>
-                  <h3 className="font-sans text-xl font-semibold text-foreground mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {feature.description}
-                  </p>
-                </div>
+                <h3 className="font-sans text-lg font-semibold text-foreground">
+                  {feature.title}
+                </h3>
               </div>
+              <p className="text-muted-foreground leading-relaxed text-sm">
+                {feature.description}
+              </p>
             </motion.div>
           ))}
         </div>

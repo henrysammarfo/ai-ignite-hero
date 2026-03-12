@@ -30,43 +30,45 @@ const layers = [
 
 const SecuritySection = () => {
   return (
-    <section className="relative bg-background py-28 px-6">
+    <section className="relative bg-background py-28 px-6 overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
       <div className="max-w-6xl mx-auto">
-        {/* Section Header */}
+        {/* Section Header — left aligned */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-20"
+          className="mb-20"
         >
-          <p className="text-primary font-sans text-sm font-semibold tracking-widest uppercase mb-4">
+          <p className="text-primary font-sans text-xs font-semibold tracking-[0.2em] uppercase mb-4">
             Security Architecture
           </p>
-          <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-foreground leading-[1.1]">
+          <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-foreground leading-[1.1] max-w-2xl">
             Institutional-grade security
           </h2>
-          <p className="mt-6 text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-6 text-muted-foreground text-lg max-w-xl leading-relaxed">
             Defense in depth — from smart contract isolation to real-time transaction monitoring.
           </p>
         </motion.div>
 
-        {/* Security Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
+        {/* Security Cards — full bleed grid with gap lines */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border/50 rounded-2xl overflow-hidden">
           {layers.map((layer, index) => (
             <motion.div
               key={layer.title}
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.97 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1, duration: 0.5 }}
-              className="bg-card p-10 flex flex-col gap-4"
+              className="group bg-card p-10 md:p-12 flex flex-col gap-5 hover:bg-card/80 transition-colors duration-500"
             >
-              <layer.icon size={28} className="text-primary" />
-              <h3 className="font-sans text-xl font-semibold text-foreground">
+              <layer.icon size={24} className="text-primary/60 group-hover:text-primary transition-colors duration-500" />
+              <h3 className="font-sans text-lg font-semibold text-foreground">
                 {layer.title}
               </h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed text-sm">
                 {layer.description}
               </p>
             </motion.div>

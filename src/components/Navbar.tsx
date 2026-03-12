@@ -6,7 +6,6 @@ const navLinks = [
   { label: "Protocol", target: "features" },
   { label: "Security", target: "security" },
   { label: "Ecosystem", target: "ecosystem" },
-  { label: "Team", target: "team" },
 ];
 
 const Navbar = () => {
