@@ -27,7 +27,7 @@ const Navbar = () => {
         >
           Book A Demo
         </a>
-        <button className="bg-white text-black rounded-full px-5 py-2.5 font-sans font-semibold text-sm hover:bg-white/90 transition-colors">
+        <button className="bg-primary text-primary-foreground rounded-full px-5 py-2.5 font-sans font-semibold text-sm hover:bg-primary/90 transition-colors">
           Launch App
         </button>
       </div>

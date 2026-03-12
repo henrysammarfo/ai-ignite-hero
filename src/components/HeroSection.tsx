@@ -118,7 +118,7 @@ const HeroSection = () => {
           {/* Secondary Button */}
           <a
             href="#"
-            className="group flex items-center gap-2 px-4 py-2 rounded-lg text-white/70 hover:text-white backdrop-blur-sm hover:bg-white/5 transition-all"
+            className="group flex items-center gap-2 px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground backdrop-blur-sm hover:bg-secondary/50 transition-all"
             style={{ fontFamily: "var(--font-sans)" }}
           >
             Read the Docs
