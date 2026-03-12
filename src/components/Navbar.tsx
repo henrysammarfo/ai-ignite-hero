@@ -23,7 +23,7 @@ const Navbar = () => {
       <div className="flex items-center gap-4">
         <a
           href="#"
-          className="hidden sm:block font-sans text-sm font-medium text-white/80 hover:text-white transition-colors"
+          className="hidden sm:block font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           Book A Demo
         </a>
