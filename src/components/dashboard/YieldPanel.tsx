@@ -1,10 +1,30 @@
+import { useState, useMemo } from "react";
 import { TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useWallet } from "@/contexts/WalletContext";
 
-const apyChartData = [
+const allApyData = [
+  { week: "Mar 15", apy: 6.8 },
+  { week: "Apr 1", apy: 7.0 },
+  { week: "Apr 15", apy: 6.9 },
+  { week: "May 1", apy: 7.2 },
+  { week: "May 15", apy: 7.1 },
+  { week: "Jun 1", apy: 7.4 },
+  { week: "Jun 15", apy: 7.0 },
+  { week: "Jul 1", apy: 7.3 },
+  { week: "Jul 15", apy: 7.6 },
+  { week: "Aug 1", apy: 7.2 },
+  { week: "Aug 15", apy: 7.5 },
+  { week: "Sep 1", apy: 7.8 },
+  { week: "Sep 15", apy: 7.3 },
+  { week: "Oct 1", apy: 7.1 },
+  { week: "Oct 15", apy: 7.4 },
+  { week: "Nov 1", apy: 7.6 },
+  { week: "Nov 15", apy: 7.2 },
+  { week: "Dec 1", apy: 7.0 },
+  { week: "Dec 15", apy: 7.3 },
   { week: "Jan 6", apy: 7.4 },
   { week: "Jan 13", apy: 7.6 },
   { week: "Jan 20", apy: 7.8 },
@@ -16,6 +36,15 @@ const apyChartData = [
   { week: "Mar 3", apy: 7.9 },
   { week: "Mar 10", apy: 8.2 },
 ];
+
+const timeRanges = [
+  { label: "1M", points: 4 },
+  { label: "3M", points: 10 },
+  { label: "6M", points: 19 },
+  { label: "1Y", points: 39 },
+] as const;
+
+type TimeRange = typeof timeRanges[number]["label"];
 
 const chartConfig = {
   apy: {
