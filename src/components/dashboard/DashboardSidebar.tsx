@@ -1,6 +1,9 @@
-import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet } from "lucide-react";
+import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, X } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 interface DashboardSidebarProps {
   activeTab: string;
@@ -15,11 +18,16 @@ const navItems = [
   { id: "reports", label: "Reports", icon: FileText },
 ];
 
-const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => {
+const SidebarContent = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarProps & { onNavigate?: () => void }) => {
   const { connected, address, connect, disconnect } = useWallet();
 
+  const handleTabChange = (tab: string) => {
+    onTabChange(tab);
+    onNavigate?.();
+  };
+
   return (
-    <aside className="w-64 min-h-screen border-r border-border bg-sidebar flex flex-col">
+    <>
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <a href="/" className="font-serif text-xl font-bold text-sidebar-primary tracking-tight">
@@ -54,7 +62,7 @@ const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => 
         {navItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => onTabChange(item.id)}
+            onClick={() => handleTabChange(item.id)}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium transition-all duration-200 ${
               activeTab === item.id
                 ? "bg-sidebar-accent text-sidebar-primary"
@@ -71,6 +79,32 @@ const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => 
       <div className="p-4 border-t border-sidebar-border">
         <p className="text-[10px] text-sidebar-foreground/30 font-sans">Fortis v0.1.0 · Devnet</p>
       </div>
+    </>
+  );
+};
+
+const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => {
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="fixed top-4 left-4 z-50 md:hidden">
+            <Menu size={20} />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0 bg-sidebar border-sidebar-border flex flex-col">
+          <SidebarContent activeTab={activeTab} onTabChange={onTabChange} onNavigate={() => setOpen(false)} />
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <aside className="w-64 min-h-screen border-r border-border bg-sidebar flex flex-col hidden md:flex">
+      <SidebarContent activeTab={activeTab} onTabChange={onTabChange} />
     </aside>
   );
 };
