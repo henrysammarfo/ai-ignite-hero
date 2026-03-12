@@ -4,6 +4,7 @@ import FeaturesSection from "@/components/FeaturesSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import SecuritySection from "@/components/SecuritySection";
 import EcosystemSection from "@/components/EcosystemSection";
+import CTASection from "@/components/CTASection";
 import TeamSection from "@/components/TeamSection";
 
 const Index = () => {
@@ -15,6 +16,7 @@ const Index = () => {
       <section id="how-it-works"><HowItWorksSection /></section>
       <section id="security"><SecuritySection /></section>
       <section id="ecosystem"><EcosystemSection /></section>
+      <CTASection />
       <section id="team"><TeamSection /></section>
     </div>
   );

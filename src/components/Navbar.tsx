@@ -14,7 +14,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-6 py-4 flex items-center justify-between">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-transparent px-6 py-4 flex items-center justify-between">
       {/* Logo */}
       <a href="/" className="font-serif text-xl font-bold text-primary tracking-tight" style={{ fontFamily: "var(--font-serif)" }}>
         Fortis
