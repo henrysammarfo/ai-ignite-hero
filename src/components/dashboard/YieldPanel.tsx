@@ -103,15 +103,30 @@ const YieldPanel = () => {
 
       {/* APY Chart */}
       <Card className="shadow-sm">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
             <TrendingUp size={16} className="text-muted-foreground" />
-            APY Performance (10 weeks)
+            APY Performance
           </CardTitle>
+          <div className="flex gap-1">
+            {timeRanges.map((r) => (
+              <button
+                key={r.label}
+                onClick={() => setRange(r.label)}
+                className={`px-2.5 py-1 text-xs font-sans font-medium rounded-md transition-colors ${
+                  range === r.label
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-[250px] w-full">
-            <AreaChart data={apyChartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="apyGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
