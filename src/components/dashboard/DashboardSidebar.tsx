@@ -52,10 +52,16 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
             </button>
           </div>
         ) : (
-          <Button onClick={connect} className="w-full gap-2 rounded-lg font-sans" size="sm">
-            <Wallet size={14} />
-            Connect Wallet
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={connect} className="w-full gap-2 rounded-lg font-sans text-sm justify-start" size="sm" variant="outline">
+              <img src="https://raw.githubusercontent.com/nicnocquee/cryptocurrency-icons/master/icons/sol.svg" alt="" className="w-4 h-4" />
+              Phantom
+            </Button>
+            <Button onClick={connect} className="w-full gap-2 rounded-lg font-sans text-sm justify-start" size="sm" variant="outline">
+              <Wallet size={14} />
+              Solflare
+            </Button>
+          </div>
         )}
       </div>
 
