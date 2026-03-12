@@ -52,8 +52,9 @@ const TransactionsPanel = () => {
       </div>
 
       {/* Transactions Table */}
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
+      <Card className="shadow-sm overflow-hidden">
+        <CardContent className="p-0 overflow-x-auto">
+          <div className="min-w-[640px]">
           {/* Header */}
           <div className="grid grid-cols-6 text-xs text-muted-foreground font-sans uppercase tracking-wider py-3 px-5 border-b border-border">
             <span>Type</span>
