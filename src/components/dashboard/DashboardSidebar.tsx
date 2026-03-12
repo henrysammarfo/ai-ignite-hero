@@ -1,4 +1,4 @@
-import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu } from "lucide-react";
+import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,10 +12,12 @@ interface DashboardSidebarProps {
 
 const navItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
   { id: "compliance", label: "Compliance", icon: Shield },
   { id: "deposit", label: "Deposit", icon: ArrowDownToLine },
   { id: "yield", label: "Yield", icon: TrendingUp },
   { id: "reports", label: "Reports", icon: FileText },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarProps & { onNavigate?: () => void }) => {
