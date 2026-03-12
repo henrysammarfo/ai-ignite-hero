@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { WalletProvider } from "@/contexts/WalletContext";
+import { DashboardThemeProvider, useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import OverviewPanel from "@/components/dashboard/OverviewPanel";
 import CompliancePanel from "@/components/dashboard/CompliancePanel";
@@ -21,10 +22,11 @@ const panels: Record<string, () => JSX.Element> = {
 
 const DashboardContent = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const { themeClass } = useDashboardTheme();
   const ActivePanel = panels[activeTab] || OverviewPanel;
 
   return (
-    <div className="dashboard-theme flex min-h-screen bg-background">
+    <div className={`${themeClass} flex min-h-screen bg-background`}>
       <DashboardSidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="flex-1 p-4 md:p-8 overflow-y-auto pt-16 md:pt-8">
         <ActivePanel />
@@ -35,7 +37,9 @@ const DashboardContent = () => {
 
 const Dashboard = () => (
   <WalletProvider>
-    <DashboardContent />
+    <DashboardThemeProvider>
+      <DashboardContent />
+    </DashboardThemeProvider>
   </WalletProvider>
 );
 

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useWallet } from "@/contexts/WalletContext";
+import { useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import { toast } from "sonner";
 
 interface NotificationPref {
@@ -27,12 +28,10 @@ const defaultNotifs: Record<string, boolean> = {
   weekly: false,
 };
 
-type ThemeMode = "light" | "dark";
-
 const SettingsPanel = () => {
   const { connected } = useWallet();
+  const { theme, setTheme } = useDashboardTheme();
   const [notifs, setNotifs] = useState<Record<string, boolean>>(defaultNotifs);
-  const [theme, setTheme] = useState<ThemeMode>("light");
   const [org, setOrg] = useState("Acme Capital AG");
   const [email, setEmail] = useState("treasury@acme-capital.ch");
 
@@ -44,10 +43,8 @@ const SettingsPanel = () => {
     });
   }, []);
 
-  const handleThemeChange = (mode: ThemeMode) => {
+  const handleThemeChange = (mode: "light" | "dark") => {
     setTheme(mode);
-    // For now this is a placeholder — teammates will wire up real theme persistence
-    // The dashboard already uses .dashboard-theme for light mode
     toast.success(`Theme set to ${mode}`, { duration: 1500 });
   };
 
@@ -129,9 +126,6 @@ const SettingsPanel = () => {
               Dark
             </button>
           </div>
-          <p className="text-xs text-muted-foreground font-sans mt-3">
-            Theme switching will be fully functional once integrated with the backend.
-          </p>
         </CardContent>
       </Card>
 
