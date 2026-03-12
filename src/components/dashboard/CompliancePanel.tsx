@@ -66,16 +66,16 @@ const CompliancePanel = () => {
       </div>
 
       {/* Overall Badge */}
-      <Card className="shadow-sm border-green-200 bg-green-50/50">
+      <Card className="shadow-sm border-primary/20 bg-primary/5">
         <CardContent className="p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-            <Shield size={24} className="text-green-600" />
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Shield size={24} className="text-primary" />
           </div>
           <div className="flex-1">
             <p className="text-lg font-sans font-bold text-foreground">Fully Compliant</p>
             <p className="text-sm text-muted-foreground font-sans">All checks passed. Vault access is enabled.</p>
           </div>
-          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-sans font-semibold text-green-700 ring-1 ring-inset ring-green-200">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-sans font-semibold text-primary ring-1 ring-inset ring-primary/20">
             Active
           </span>
         </CardContent>
