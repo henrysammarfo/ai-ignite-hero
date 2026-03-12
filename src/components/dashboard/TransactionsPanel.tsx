@@ -86,6 +86,7 @@ const TransactionsPanel = () => {
               </div>
             );
           })}
+          </div>
         </CardContent>
       </Card>
     </div>
