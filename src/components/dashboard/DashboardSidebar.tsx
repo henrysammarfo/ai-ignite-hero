@@ -99,17 +99,28 @@ const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => 
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className={`fixed top-4 left-4 z-50 md:hidden shadow-sm ${themeClass} bg-card`}>
-            <Menu size={18} />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className={`w-64 p-0 flex flex-col ${themeClass} bg-card`}>
-          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <SidebarInner activeTab={activeTab} onTabChange={onTabChange} onNavigate={() => setOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      <>
+        <Sheet open={open} onOpenChange={setOpen}>
+          <div className={`fixed top-0 left-0 right-0 z-50 md:hidden ${themeClass} bg-card border-b border-border`}>
+            <div className="flex items-center justify-between px-4 h-14">
+              <a href="/" className="font-serif text-lg font-bold text-primary tracking-tight">
+                Fortis
+              </a>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-foreground">
+                  <Menu size={20} />
+                </Button>
+              </SheetTrigger>
+            </div>
+          </div>
+          <SheetContent side="left" className={`w-64 p-0 flex flex-col ${themeClass} bg-card`}>
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            <SidebarInner activeTab={activeTab} onTabChange={onTabChange} onNavigate={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+        {/* Spacer for fixed top bar */}
+        <div className="h-14 md:hidden" />
+      </>
     );
   }
 
