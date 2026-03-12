@@ -1,7 +1,7 @@
 import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 
@@ -31,7 +31,7 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="p-6 border-b border-border">
         <a href="/" className="font-serif text-xl font-bold text-primary tracking-tight">
           Fortis
         </a>
@@ -39,7 +39,7 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
       </div>
 
       {/* Wallet */}
-      <div className="p-4 border-b border-sidebar-border">
+      <div className="p-4 border-b border-border">
         {connected ? (
           <div className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2.5">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -84,7 +84,7 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-border">
         <p className="text-[10px] text-muted-foreground/50 font-sans">Fortis v0.1.0 · Devnet</p>
       </div>
     </div>
@@ -103,7 +103,8 @@ const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => 
             <Menu size={18} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0 flex flex-col">
+        <SheetContent side="left" className="w-64 p-0 flex flex-col dashboard-theme bg-card">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <SidebarInner activeTab={activeTab} onTabChange={onTabChange} onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
