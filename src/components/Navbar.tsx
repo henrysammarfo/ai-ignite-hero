@@ -1,6 +1,20 @@
+const navLinks = [
+  { label: "Protocol", target: "features" },
+  { label: "Security", target: "security" },
+  { label: "Ecosystem", target: "ecosystem" },
+  { label: "Team", target: "team" },
+];
+
 const Navbar = () => {
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-transparent px-6 py-4 flex items-center justify-between">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-6 py-4 flex items-center justify-between">
       {/* Logo */}
       <a href="/" className="font-serif text-xl font-bold text-primary tracking-tight" style={{ fontFamily: "var(--font-serif)" }}>
         Fortis
@@ -8,14 +22,14 @@ const Navbar = () => {
 
       {/* Center Links */}
       <div className="hidden md:flex items-center gap-8">
-        {["Protocol", "Security", "Docs", "Team"].map((label) => (
-          <a
-            key={label}
-            href="#"
+        {navLinks.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => scrollTo(item.target)}
             className="font-sans text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            {label}
-          </a>
+            {item.label}
+          </button>
         ))}
       </div>
 
