@@ -422,7 +422,7 @@ const VaultsPanel = () => {
 
       {/* Withdraw Modal */}
       <Dialog open={!!withdrawVault} onOpenChange={(open) => !open && closeWithdraw()}>
-        <DialogContent className="max-w-md">
+        <ThemedDialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
               {withdrawStep === "done" ? "Withdrawal Complete" : `Withdraw from ${withdrawVault?.name}`}
