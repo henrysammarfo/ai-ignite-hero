@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Plus, Wallet, Tag, ArrowUpFromLine, ArrowDownToLine, MoreHorizontal, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Wallet, Tag, ArrowUpFromLine, ArrowDownToLine, TrendingUp } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
+import WalletConnectModal from "./WalletConnectModal";
 
 interface Vault {
   id: string;
@@ -38,16 +39,31 @@ const VaultsPanel = () => {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [depositVaultId, setDepositVaultId] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState("");
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   if (!connected) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted-foreground font-sans">Connect wallet to manage vaults.</p>
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+            <Wallet size={28} className="text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-serif font-bold text-foreground">Connect your wallet</h2>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto font-sans">
+            Connect a Solana wallet to create and manage your institutional vaults.
+          </p>
+          <Button onClick={() => setWalletModalOpen(true)} className="gap-2 font-sans">
+            <Wallet size={14} />
+            Connect Wallet
+          </Button>
+          <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
+        </div>
       </div>
     );
   }
 
   const totalBalance = vaults.reduce((sum, v) => sum + v.balance, 0);
+  const locked = !isFullyCompliant;
 
   const handleCreateVault = () => {
     if (!newName.trim()) return;
@@ -87,11 +103,9 @@ const VaultsPanel = () => {
     setDepositAmount("");
   };
 
-  const locked = !isFullyCompliant;
-
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-serif font-bold text-foreground">Vaults</h1>
           <p className="text-sm text-muted-foreground font-sans mt-1">
@@ -100,12 +114,13 @@ const VaultsPanel = () => {
         </div>
         <Button
           size="sm"
-          className="gap-1.5 font-sans text-xs"
+          className="gap-1.5 font-sans text-xs shrink-0"
           onClick={() => setShowCreate(!showCreate)}
           disabled={locked}
         >
           <Plus size={14} />
-          New Vault
+          <span className="hidden sm:inline">New Vault</span>
+          <span className="sm:hidden">New</span>
         </Button>
       </div>
 
@@ -119,23 +134,23 @@ const VaultsPanel = () => {
       )}
 
       {/* Total stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Total Balance</p>
-            <p className="text-xl font-bold font-sans text-foreground mt-1">${totalBalance.toLocaleString()}</p>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-sans uppercase tracking-wider">Balance</p>
+            <p className="text-base sm:text-xl font-bold font-sans text-foreground mt-1">${totalBalance.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Active Vaults</p>
-            <p className="text-xl font-bold font-sans text-foreground mt-1">{vaults.length}</p>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-sans uppercase tracking-wider">Vaults</p>
+            <p className="text-base sm:text-xl font-bold font-sans text-foreground mt-1">{vaults.length}</p>
           </CardContent>
         </Card>
-        <Card className="shadow-sm col-span-2 sm:col-span-1">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Avg APY</p>
-            <p className="text-xl font-bold font-sans text-primary mt-1">
+        <Card className="shadow-sm">
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-sans uppercase tracking-wider">Avg APY</p>
+            <p className="text-base sm:text-xl font-bold font-sans text-primary mt-1">
               {vaults.length ? (vaults.reduce((s, v) => s + v.apy, 0) / vaults.length).toFixed(1) : 0}%
             </p>
           </CardContent>
@@ -145,7 +160,7 @@ const VaultsPanel = () => {
       {/* Create vault form */}
       {showCreate && !locked && (
         <Card className="shadow-sm border-primary/20">
-          <CardContent className="p-5 space-y-4">
+          <CardContent className="p-4 sm:p-5 space-y-4">
             <h3 className="text-sm font-sans font-semibold text-foreground">Create New Vault</h3>
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Vault Name</label>
@@ -158,7 +173,7 @@ const VaultsPanel = () => {
             </div>
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Strategy Tag</label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {["conservative", "growth", "custom"].map(tag => (
                   <button
                     key={tag}
@@ -186,41 +201,43 @@ const VaultsPanel = () => {
       <div className="space-y-3">
         {vaults.map(vault => (
           <Card key={vault.id} className="shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2 flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Wallet size={14} className="text-primary shrink-0" />
-                    <h3 className="text-sm font-sans font-semibold text-foreground truncate">{vault.name}</h3>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-sans font-medium capitalize ${tagColors[vault.tag] || tagColors.custom}`}>
-                      <Tag size={8} />
-                      {vault.tag}
-                    </span>
+            <CardContent className="p-4 sm:p-5">
+              <div className="space-y-3">
+                {/* Vault header */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Wallet size={14} className="text-primary shrink-0" />
+                  <h3 className="text-sm font-sans font-semibold text-foreground truncate">{vault.name}</h3>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-sans font-medium capitalize ${tagColors[vault.tag] || tagColors.custom}`}>
+                    <Tag size={8} />
+                    {vault.tag}
+                  </span>
+                </div>
+
+                {/* Stats row */}
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-sans">Balance</p>
+                    <p className="text-lg font-bold font-sans text-foreground">${vault.balance.toLocaleString()}</p>
                   </div>
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <div>
-                      <p className="text-xs text-muted-foreground font-sans">Balance</p>
-                      <p className="text-lg font-bold font-sans text-foreground">${vault.balance.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground font-sans">APY</p>
-                      <p className="text-lg font-bold font-sans text-primary flex items-center gap-1">
-                        <TrendingUp size={14} />
-                        {vault.apy}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground font-sans">Created</p>
-                      <p className="text-sm font-sans text-foreground">{vault.createdAt}</p>
-                    </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-sans">APY</p>
+                    <p className="text-lg font-bold font-sans text-primary flex items-center gap-1">
+                      <TrendingUp size={14} />
+                      {vault.apy}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-sans">Created</p>
+                    <p className="text-sm font-sans text-foreground">{vault.createdAt}</p>
                   </div>
                 </div>
 
-                <div className="flex gap-2 shrink-0">
+                {/* Action buttons - stack on mobile */}
+                <div className="flex gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="gap-1 font-sans text-xs"
+                    className="gap-1 font-sans text-xs flex-1 sm:flex-none"
                     disabled={locked}
                     onClick={() => {
                       setDepositVaultId(depositVaultId === vault.id ? null : vault.id);
@@ -233,7 +250,7 @@ const VaultsPanel = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="gap-1 font-sans text-xs"
+                    className="gap-1 font-sans text-xs flex-1 sm:flex-none"
                     disabled={locked || vault.balance <= 0}
                     onClick={() => {
                       setWithdrawVaultId(withdrawVaultId === vault.id ? null : vault.id);
@@ -248,7 +265,7 @@ const VaultsPanel = () => {
 
               {/* Deposit inline form */}
               {depositVaultId === vault.id && !locked && (
-                <div className="mt-4 pt-4 border-t border-border flex items-end gap-3">
+                <div className="mt-4 pt-4 border-t border-border space-y-3 sm:space-y-0 sm:flex sm:items-end sm:gap-3">
                   <div className="flex-1">
                     <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-1 block">Deposit USDC</label>
                     <Input
@@ -260,7 +277,7 @@ const VaultsPanel = () => {
                       min="1"
                     />
                   </div>
-                  <Button size="sm" className="font-sans text-xs" onClick={() => handleDeposit(vault.id)}>
+                  <Button size="sm" className="font-sans text-xs w-full sm:w-auto" onClick={() => handleDeposit(vault.id)}>
                     Confirm Deposit
                   </Button>
                 </div>
@@ -268,7 +285,7 @@ const VaultsPanel = () => {
 
               {/* Withdraw inline form */}
               {withdrawVaultId === vault.id && !locked && (
-                <div className="mt-4 pt-4 border-t border-border flex items-end gap-3">
+                <div className="mt-4 pt-4 border-t border-border space-y-3 sm:space-y-0 sm:flex sm:items-end sm:gap-3">
                   <div className="flex-1">
                     <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-1 block">Withdraw USDC</label>
                     <Input
@@ -282,7 +299,7 @@ const VaultsPanel = () => {
                     />
                     <p className="text-[10px] text-muted-foreground font-sans mt-1">Available: ${vault.balance.toLocaleString()}</p>
                   </div>
-                  <Button size="sm" variant="destructive" className="font-sans text-xs" onClick={() => handleWithdraw(vault.id)}>
+                  <Button size="sm" variant="destructive" className="font-sans text-xs w-full sm:w-auto" onClick={() => handleWithdraw(vault.id)}>
                     Confirm Withdrawal
                   </Button>
                 </div>

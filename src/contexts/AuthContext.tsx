@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+
+type LoginMethod = "email" | "wallet" | "google";
 
 interface AuthContextType {
   isAuthenticated: boolean;
   userEmail: string | null;
-  loginMethod: "email" | "wallet" | "google" | "apple" | null;
-  login: (email: string, method: "email" | "wallet" | "google" | "apple") => void;
+  loginMethod: LoginMethod | null;
+  login: (email: string, method: LoginMethod) => void;
   logout: () => void;
 }
 
@@ -26,11 +27,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userEmail, setUserEmail] = useState<string | null>(
     () => sessionStorage.getItem("fortis_email")
   );
-  const [loginMethod, setLoginMethod] = useState<AuthContextType["loginMethod"]>(
-    () => sessionStorage.getItem("fortis_method") as AuthContextType["loginMethod"]
+  const [loginMethod, setLoginMethod] = useState<LoginMethod | null>(
+    () => sessionStorage.getItem("fortis_method") as LoginMethod | null
   );
 
-  const login = useCallback((email: string, method: "email" | "wallet" | "google" | "apple") => {
+  const login = useCallback((email: string, method: LoginMethod) => {
     setIsAuthenticated(true);
     setUserEmail(email);
     setLoginMethod(method);

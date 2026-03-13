@@ -1,4 +1,5 @@
-import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings, Vault } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings, Vault, Link2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useWallet } from "@/contexts/WalletContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +7,7 @@ import { useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState } from "react";
+import WalletConnectModal from "./WalletConnectModal";
 
 interface DashboardSidebarProps {
   activeTab: string;
@@ -25,14 +26,17 @@ const navItems = [
 ];
 
 const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarProps & { onNavigate?: () => void }) => {
-  const { connected, address, connect, disconnect } = useWallet();
-  const { logout } = useAuth();
+  const { connected, address, disconnect } = useWallet();
+  const { loginMethod, logout } = useAuth();
   const navigate = useNavigate();
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const handleTabChange = (tab: string) => {
     onTabChange(tab);
     onNavigate?.();
   };
+
+  const needsWallet = loginMethod === "email" || loginMethod === "google";
 
   return (
     <div className="flex flex-col h-full">
@@ -50,7 +54,7 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
           <div className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2.5">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground font-sans">Connected</p>
+              <p className="text-xs text-muted-foreground font-sans">Connected · Devnet</p>
               <p className="text-sm font-mono text-foreground truncate">{address}</p>
             </div>
             <button onClick={disconnect} className="text-muted-foreground hover:text-destructive transition-colors">
@@ -59,15 +63,28 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
           </div>
         ) : (
           <div className="space-y-2">
-            <Button onClick={connect} className="w-full gap-2 rounded-lg font-sans text-sm justify-start" size="sm" variant="outline">
-              <img src="https://raw.githubusercontent.com/nicnocquee/cryptocurrency-icons/master/icons/sol.svg" alt="" className="w-4 h-4" />
-              Phantom
-            </Button>
-            <Button onClick={connect} className="w-full gap-2 rounded-lg font-sans text-sm justify-start" size="sm" variant="outline">
+            <Button
+              onClick={() => setWalletModalOpen(true)}
+              className="w-full gap-2 rounded-lg font-sans text-sm"
+              size="sm"
+            >
               <Wallet size={14} />
-              Solflare
+              Connect Wallet
             </Button>
+            {needsWallet && (
+              <p className="text-[10px] text-muted-foreground font-sans text-center">
+                Connect a Solana wallet to deposit & withdraw
+              </p>
+            )}
           </div>
+        )}
+
+        {/* Optional: wallet users can link Google */}
+        {connected && loginMethod === "wallet" && (
+          <button className="mt-2 w-full flex items-center gap-2 justify-center text-[10px] text-muted-foreground font-sans hover:text-foreground transition-colors">
+            <Link2 size={10} />
+            Link Google account (optional)
+          </button>
         )}
       </div>
 
@@ -104,6 +121,8 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
         </button>
         <p className="text-[10px] text-muted-foreground/50 font-sans">Fortis v0.1.0 · Devnet</p>
       </div>
+
+      <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
     </div>
   );
 };
@@ -134,7 +153,6 @@ const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => 
             <SidebarInner activeTab={activeTab} onTabChange={onTabChange} onNavigate={() => setOpen(false)} />
           </SheetContent>
         </Sheet>
-        {/* Spacer for fixed top bar */}
         <div className="h-14 md:hidden" />
       </>
     );
