@@ -47,6 +47,8 @@ const VaultsPanel = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newTag, setNewTag] = useState("conservative");
+  const [customLockDays, setCustomLockDays] = useState("30");
+  const [customMinDeposit, setCustomMinDeposit] = useState("1000");
 
   // Deposit modal
   const [depositVault, setDepositVault] = useState<Vault | null>(null);
