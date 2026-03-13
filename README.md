@@ -1,73 +1,73 @@
-# Welcome to your Lovable project
+# Fortis — Institutional Stablecoin Treasury on Solana
 
-## Project info
+> Compliant. Institutional. On-chain.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Fortis is an institutional-grade stablecoin treasury management platform built on Solana. It provides permissioned PDA vaults, 4-layer compliance verification (KYC, AML, Travel Rule, Source of Funds), and real-time yield tracking — designed for companies, funds, and DAOs.
 
-## How can I edit this code?
+## 🚀 Quick Start
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
+cd fortis
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🏗️ Tech Stack
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend:** Lovable Cloud (Supabase) — Auth, Database, Edge Functions, Realtime
+- **Blockchain:** Solana Devnet — Anchor PDA Vaults, SPL USDC
+- **Compliance:** Civic Pass (KYC), TRM Labs (AML), Notabene (Travel Rule), On-chain PDA (SoF)
+- **Oracle:** Pyth Network for real-time price feeds
+- **Reports:** jsPDF for FINMA-compliant PDF generation
 
-**Use GitHub Codespaces**
+## 📁 Project Structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+src/
+├── contexts/           # Auth, Wallet, Compliance, Theme state
+├── components/
+│   ├── dashboard/      # All dashboard panels (Vaults, Deposit, Yield, etc.)
+│   └── ui/             # shadcn/ui component library
+├── pages/              # Route pages (Index, Login, Dashboard)
+├── lib/                # Utilities and report generation
+└── integrations/       # Supabase client (auto-configured)
 
-## What technologies are used for this project?
+supabase/functions/     # Edge functions (compliance verification)
+```
 
-This project is built with:
+## 🔐 Features
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Multi-Auth:** Email, Google, or Solana Wallet sign-in
+- **4-Layer Compliance:** KYC → AML → Travel Rule → Source of Funds verification pipeline
+- **PDA Vaults:** Create, deposit, withdraw with on-chain Solana program
+- **Action Gating:** Financial operations locked until wallet + compliance verified
+- **Real-time Dashboard:** Overview, transactions, yield metrics, compliance status
+- **PDF Reports:** FINMA-aligned compliance and financial reporting
+- **Dark/Light Mode:** Full theme support across all panels
+- **Mobile Responsive:** Optimized for all screen sizes
 
-## How can I deploy this project?
+## 📖 Development Guide
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+See **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** for the full task breakdown, teammate assignments, integration points, and timeline.
 
-## Can I connect a custom domain to my Lovable project?
+## 🧪 Testing
 
-Yes, you can!
+```bash
+npm run test          # Run unit tests
+npm run test:watch    # Watch mode
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📦 Deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Frontend deploys via Lovable. Backend (edge functions, database) deploys automatically.
+
+## 📄 License
+
+Built for StableHacks 2026.
