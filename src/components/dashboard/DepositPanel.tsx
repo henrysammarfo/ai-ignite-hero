@@ -8,8 +8,10 @@ import { useCompliance } from "@/contexts/ComplianceContext";
 
 const DepositPanel = () => {
   const { connected } = useWallet();
+  const { isFullyCompliant } = useCompliance();
   const [amount, setAmount] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const locked = !isFullyCompliant;
 
   if (!connected) {
     return (
