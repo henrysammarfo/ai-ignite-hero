@@ -149,7 +149,7 @@ const ReportsPanel = () => {
 
       {/* Report Preview Modal */}
       <Dialog open={!!previewData} onOpenChange={(open) => { if (!open) { setPreviewData(null); setPreviewReport(null); } }}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <ThemedDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">{previewData?.title}</DialogTitle>
             <p className="text-xs text-muted-foreground font-sans">{previewData?.subtitle}</p>
