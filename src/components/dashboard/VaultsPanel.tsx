@@ -87,6 +87,9 @@ const VaultsPanel = () => {
 
   const handleCreateVault = () => {
     if (!newName.trim()) return;
+    const defaults = strategyDefaults[newTag] || strategyDefaults.custom;
+    const lockDays = newTag === "custom" ? parseInt(customLockDays) || 30 : defaults.lockDays;
+    const minDeposit = newTag === "custom" ? parseInt(customMinDeposit) || 1000 : defaults.minDeposit;
     const vault: Vault = {
       id: `v${Date.now()}`,
       name: newName,
@@ -94,10 +97,14 @@ const VaultsPanel = () => {
       balance: 0,
       apy: parseFloat((5 + Math.random() * 5).toFixed(1)),
       createdAt: new Date().toISOString().split("T")[0],
+      lockDays,
+      minDeposit,
     };
     setVaults([...vaults, vault]);
     setNewName("");
     setNewTag("conservative");
+    setCustomLockDays("30");
+    setCustomMinDeposit("1000");
     setShowCreate(false);
     toast.success(`Vault "${vault.name}" created`);
   };
