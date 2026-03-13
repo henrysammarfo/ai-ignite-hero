@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Wallet, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle, DialogDescription } from "./ThemedDialog";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
