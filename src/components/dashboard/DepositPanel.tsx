@@ -93,8 +93,13 @@ const DepositPanel = () => {
             </p>
           </div>
 
-          {submitted ? (
-            <div className="flex items-center gap-2 text-green-600 justify-center py-3">
+          {locked ? (
+            <Button disabled className="w-full rounded-lg font-sans font-semibold gap-2" size="lg">
+              <Lock size={16} />
+              Complete Compliance to Deposit
+            </Button>
+          ) : submitted ? (
+            <div className="flex items-center gap-2 text-primary justify-center py-3">
               <CheckCircle2 size={18} />
               <span className="text-sm font-sans font-medium">Deposit submitted — processing compliance checks</span>
             </div>
