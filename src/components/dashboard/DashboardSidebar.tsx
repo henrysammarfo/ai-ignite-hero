@@ -93,7 +93,8 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
         <button
           onClick={() => {
             disconnect();
-            window.location.href = "/login";
+            logout();
+            navigate("/login");
           }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium text-destructive hover:bg-destructive/10 transition-all duration-200"
         >
