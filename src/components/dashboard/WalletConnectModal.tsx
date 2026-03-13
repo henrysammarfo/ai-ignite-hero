@@ -31,7 +31,7 @@ const WalletConnectModal = ({ open, onOpenChange, onConnected }: WalletConnectMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <ThemedDialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-serif text-lg">Connect Wallet</DialogTitle>
           <DialogDescription className="font-sans text-xs">
