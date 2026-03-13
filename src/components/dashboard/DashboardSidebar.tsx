@@ -1,6 +1,7 @@
 import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useWallet } from "@/contexts/WalletContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -24,6 +25,8 @@ const navItems = [
 
 const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarProps & { onNavigate?: () => void }) => {
   const { connected, address, connect, disconnect } = useWallet();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleTabChange = (tab: string) => {
     onTabChange(tab);
@@ -90,7 +93,8 @@ const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarPr
         <button
           onClick={() => {
             disconnect();
-            window.location.href = "/login";
+            logout();
+            navigate("/login");
           }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium text-destructive hover:bg-destructive/10 transition-all duration-200"
         >

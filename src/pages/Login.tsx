@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Wallet, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type AuthMode = "signin" | "signup" | "forgot" | "wallet";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [mode, setMode] = useState<AuthMode>("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -30,6 +32,7 @@ const Login = () => {
     } else {
       toast.success("Signed in successfully");
     }
+    login(email, "email");
     setTimeout(() => navigate("/dashboard"), 600);
   };
 
@@ -38,6 +41,7 @@ const Login = () => {
     toast.loading(`Connecting ${walletName}...`, { id: "wallet" });
     setTimeout(() => {
       setWalletConnecting(false);
+      login(`${walletName.toLowerCase()}@wallet`, "wallet");
       toast.success(`${walletName} connected! Redirecting...`, { id: "wallet" });
       setTimeout(() => navigate("/dashboard"), 600);
     }, 1500);
@@ -309,6 +313,7 @@ const Login = () => {
                   className="font-sans text-sm gap-2"
                   type="button"
                   onClick={() => {
+                    login(email || "user@google.com", "google");
                     toast.success("Google sign-in — redirecting...");
                     setTimeout(() => navigate("/dashboard"), 800);
                   }}
@@ -321,6 +326,7 @@ const Login = () => {
                   className="font-sans text-sm gap-2"
                   type="button"
                   onClick={() => {
+                    login(email || "user@apple.com", "apple");
                     toast.success("Apple sign-in — redirecting...");
                     setTimeout(() => navigate("/dashboard"), 800);
                   }}
