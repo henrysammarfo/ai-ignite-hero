@@ -3,7 +3,7 @@ import { ArrowUpRight, ArrowDownLeft, Search, Filter, ExternalLink, Copy, X } fr
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle } from "./ThemedDialog";
 import { toast } from "sonner";
 
 interface Transaction {
