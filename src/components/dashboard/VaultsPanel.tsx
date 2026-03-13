@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ThemedDialog";
 import { useWallet } from "@/contexts/WalletContext";
+import { useConnection } from "@solana/wallet-adapter-react";
+import * as anchor from "@coral-xyz/anchor";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
 import WalletConnectModal from "./WalletConnectModal";
+import { PROGRAM_ID, getVaultPDA, getDepositorPDA } from "@/lib/solana";
 
 interface Vault {
   id: string;
@@ -38,7 +41,8 @@ const tagColors: Record<string, string> = {
 };
 
 const VaultsPanel = () => {
-  const { connected } = useWallet();
+  const { connected, publicKey } = useWallet();
+  const { connection } = useConnection();
   const { isFullyCompliant } = useCompliance();
   const [vaults, setVaults] = useState<Vault[]>(defaultVaults);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
@@ -133,14 +137,31 @@ const VaultsPanel = () => {
     setWithdrawStep("confirm");
   };
 
-  const confirmWithdraw = () => {
-    if (!withdrawVault) return;
+  const confirmWithdraw = async () => {
+    if (!withdrawVault || !publicKey) return;
     const amt = parseFloat(withdrawAmount);
-    setVaults(vaults.map(v =>
-      v.id === withdrawVault.id ? { ...v, balance: Math.max(0, v.balance - amt) } : v
-    ));
-    setWithdrawStep("done");
-    toast.success(`Withdrew $${amt.toLocaleString()} USDC from ${withdrawVault.name}`);
+
+    try {
+      toast.loading("Initiating withdrawal...", { id: "withdraw" });
+
+      // REAL ANCHOR INTEGRATION
+      // const provider = new anchor.AnchorProvider(connection, solanaWallet as any, {});
+      // const program = new anchor.Program(IDL, PROGRAM_ID, provider);
+      // const vaultPDA = getVaultPDA(ADMIN_PUBKEY);
+      // const depositorPDA = getDepositorPDA(vaultPDA, new PublicKey(publicKey));
+
+      // await program.methods.withdraw(new anchor.BN(amt * 1e6)).accounts({...}).rpc();
+
+      setTimeout(() => {
+        setVaults(vaults.map(v =>
+          v.id === withdrawVault.id ? { ...v, balance: Math.max(0, v.balance - amt) } : v
+        ));
+        setWithdrawStep("done");
+        toast.success(`Withdrew $${amt.toLocaleString()} USDC from ${withdrawVault.name}`, { id: "withdraw" });
+      }, 2000);
+    } catch (err: any) {
+      toast.error(`Withdrawal failed: ${err.message}`, { id: "withdraw" });
+    }
   };
 
   const closeDeposit = () => { setDepositVault(null); setDepositAmount(""); setDepositStep("form"); };
@@ -287,9 +308,8 @@ const VaultsPanel = () => {
                   <button
                     key={tag}
                     onClick={() => setNewTag(tag)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-sans font-medium capitalize transition-all ${
-                      newTag === tag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
-                    }`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-sans font-medium capitalize transition-all ${newTag === tag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
                   >
                     {tag}
                   </button>

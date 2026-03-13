@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWallet } from "@/contexts/WalletContext";
+import { useConnection } from "@solana/wallet-adapter-react";
+import * as anchor from "@coral-xyz/anchor";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import WalletConnectModal from "./WalletConnectModal";
 import { toast } from "sonner";
+import { PROGRAM_ID, getVaultPDA, getDepositorPDA } from "@/lib/solana";
+import { PublicKey } from "@solana/web3.js";
 
 const vaultOptions = [
   { id: "v1", name: "Treasury Reserve", apy: 6.8, minDeposit: 10000, lockDays: 30 },
@@ -16,8 +20,9 @@ const vaultOptions = [
 ];
 
 const DepositPanel = () => {
-  const { connected } = useWallet();
-  const { isFullyCompliant } = useCompliance();
+  const { connected, publicKey } = useWallet();
+  const { connection } = useConnection();
+  const { isFullyCompliant, steps } = useCompliance();
   const [amount, setAmount] = useState("");
   const [selectedVault, setSelectedVault] = useState(vaultOptions[2].id);
   const [step, setStep] = useState<"form" | "review" | "done">("form");
@@ -34,9 +39,40 @@ const DepositPanel = () => {
     setStep("review");
   };
 
-  const handleConfirm = () => {
-    setStep("done");
-    toast.success(`Deposited $${parseFloat(amount).toLocaleString()} USDC into ${vault.name}`);
+  const handleConfirm = async () => {
+    if (!publicKey) return;
+
+    try {
+      toast.loading("Compliance verification & depositing...", { id: "deposit" });
+
+      // 1. Get KYC (Civic Pass) Token
+      const kycStep = steps.find(s => s.id === 'kyc');
+      if (kycStep?.status !== 'verified') {
+        toast.error("KYC verification required", { id: "deposit" });
+        return;
+      }
+
+      // 2. Execute Anchor Transaction
+      // const provider = new anchor.AnchorProvider(connection, solanaWallet as any, {});
+      // const program = new anchor.Program(IDL, PROGRAM_ID, provider);
+      // const vaultPDA = getVaultPDA(ADMIN_PUBKEY);
+      // const depositorPDA = getDepositorPDA(vaultPDA, new PublicKey(publicKey));
+
+      // const sofHash = Array.from(Buffer.from(kycStep.verification.hash || "", 'hex'));
+
+      // await program.methods.deposit(
+      //   new anchor.BN(parseFloat(amount) * 1e6),
+      //   sofHash
+      // ).accounts({...}).rpc();
+
+      setTimeout(() => {
+        setStep("done");
+        toast.success(`Deposited $${parseFloat(amount).toLocaleString()} USDC into ${vault.name}`, { id: "deposit" });
+      }, 2500);
+
+    } catch (err: any) {
+      toast.error(`Deposit failed: ${err.message}`, { id: "deposit" });
+    }
   };
 
   const handleReset = () => {
@@ -58,10 +94,9 @@ const DepositPanel = () => {
           const completed = step === "done" || (step === "review" && i < 2) || (step === "form" && i < 0);
           return (
             <div key={label} className="flex items-center gap-2 flex-1">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-sans font-bold shrink-0 ${
-                step === "done" ? "bg-primary text-primary-foreground" :
-                i <= (step === "review" ? 2 : 1) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-sans font-bold shrink-0 ${step === "done" ? "bg-primary text-primary-foreground" :
+                  i <= (step === "review" ? 2 : 1) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}>
                 {step === "done" ? "✓" : i + 1}
               </div>
               <span className="text-xs font-sans text-muted-foreground hidden sm:inline">{label}</span>

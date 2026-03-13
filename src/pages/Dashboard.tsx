@@ -25,6 +25,8 @@ const panels: Record<string, () => JSX.Element> = {
 };
 
 const DashboardContent = () => {
+  const { address: walletAddress } = useWallet();
+  const { userEmail } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const { themeClass } = useDashboardTheme();
   const ActivePanel = panels[activeTab] || OverviewPanel;
