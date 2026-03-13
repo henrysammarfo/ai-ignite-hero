@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Plus, Wallet, Tag, ArrowUpFromLine, ArrowDownToLine, TrendingUp } from "lucide-react";
+import { Plus, Wallet, Tag, ArrowUpFromLine, ArrowDownToLine, TrendingUp, Shield, Clock, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
@@ -32,14 +33,24 @@ const VaultsPanel = () => {
   const { connected } = useWallet();
   const { isFullyCompliant } = useCompliance();
   const [vaults, setVaults] = useState<Vault[]>(defaultVaults);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+
+  // Create vault modal
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newTag, setNewTag] = useState("conservative");
-  const [withdrawVaultId, setWithdrawVaultId] = useState<string | null>(null);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [depositVaultId, setDepositVaultId] = useState<string | null>(null);
+
+  // Deposit modal
+  const [depositVault, setDepositVault] = useState<Vault | null>(null);
   const [depositAmount, setDepositAmount] = useState("");
-  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [depositStep, setDepositStep] = useState<"form" | "confirm" | "done">("form");
+
+  // Withdraw modal
+  const [withdrawVault, setWithdrawVault] = useState<Vault | null>(null);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawStep, setWithdrawStep] = useState<"form" | "confirm" | "done">("form");
+
+  const locked = !isFullyCompliant;
 
   if (!connected) {
     return (
@@ -63,7 +74,6 @@ const VaultsPanel = () => {
   }
 
   const totalBalance = vaults.reduce((sum, v) => sum + v.balance, 0);
-  const locked = !isFullyCompliant;
 
   const handleCreateVault = () => {
     if (!newName.trim()) return;
@@ -77,45 +87,59 @@ const VaultsPanel = () => {
     };
     setVaults([...vaults, vault]);
     setNewName("");
+    setNewTag("conservative");
     setShowCreate(false);
     toast.success(`Vault "${vault.name}" created`);
   };
 
-  const handleWithdraw = (vaultId: string) => {
-    const amt = parseFloat(withdrawAmount);
-    if (!amt || amt <= 0) return;
-    setVaults(vaults.map(v =>
-      v.id === vaultId ? { ...v, balance: Math.max(0, v.balance - amt) } : v
-    ));
-    toast.success(`Withdrew $${amt.toLocaleString()} USDC — compliance checks passed`);
-    setWithdrawVaultId(null);
-    setWithdrawAmount("");
-  };
-
-  const handleDeposit = (vaultId: string) => {
+  const handleDeposit = () => {
+    if (!depositVault) return;
     const amt = parseFloat(depositAmount);
     if (!amt || amt <= 0) return;
-    setVaults(vaults.map(v =>
-      v.id === vaultId ? { ...v, balance: v.balance + amt } : v
-    ));
-    toast.success(`Deposited $${amt.toLocaleString()} USDC into vault`);
-    setDepositVaultId(null);
-    setDepositAmount("");
+    setDepositStep("confirm");
   };
+
+  const confirmDeposit = () => {
+    if (!depositVault) return;
+    const amt = parseFloat(depositAmount);
+    setVaults(vaults.map(v =>
+      v.id === depositVault.id ? { ...v, balance: v.balance + amt } : v
+    ));
+    setDepositStep("done");
+    toast.success(`Deposited $${amt.toLocaleString()} USDC into ${depositVault.name}`);
+  };
+
+  const handleWithdraw = () => {
+    if (!withdrawVault) return;
+    const amt = parseFloat(withdrawAmount);
+    if (!amt || amt <= 0 || amt > withdrawVault.balance) return;
+    setWithdrawStep("confirm");
+  };
+
+  const confirmWithdraw = () => {
+    if (!withdrawVault) return;
+    const amt = parseFloat(withdrawAmount);
+    setVaults(vaults.map(v =>
+      v.id === withdrawVault.id ? { ...v, balance: Math.max(0, v.balance - amt) } : v
+    ));
+    setWithdrawStep("done");
+    toast.success(`Withdrew $${amt.toLocaleString()} USDC from ${withdrawVault.name}`);
+  };
+
+  const closeDeposit = () => { setDepositVault(null); setDepositAmount(""); setDepositStep("form"); };
+  const closeWithdraw = () => { setWithdrawVault(null); setWithdrawAmount(""); setWithdrawStep("form"); };
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-serif font-bold text-foreground">Vaults</h1>
-          <p className="text-sm text-muted-foreground font-sans mt-1">
-            Manage your permissioned USDC vaults
-          </p>
+          <p className="text-sm text-muted-foreground font-sans mt-1">Manage your permissioned USDC vaults</p>
         </div>
         <Button
           size="sm"
           className="gap-1.5 font-sans text-xs shrink-0"
-          onClick={() => setShowCreate(!showCreate)}
+          onClick={() => setShowCreate(true)}
           disabled={locked}
         >
           <Plus size={14} />
@@ -125,15 +149,18 @@ const VaultsPanel = () => {
       </div>
 
       {locked && (
-        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4">
-          <p className="text-sm font-sans text-foreground font-medium">🔒 Vault operations locked</p>
-          <p className="text-xs text-muted-foreground font-sans mt-1">
-            Complete all 4 compliance checks to create vaults, deposit, and withdraw.
-          </p>
+        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 flex items-start gap-3">
+          <Shield size={16} className="text-destructive mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-sans text-foreground font-medium">Vault operations locked</p>
+            <p className="text-xs text-muted-foreground font-sans mt-1">
+              Complete all 4 compliance checks to create vaults, deposit, and withdraw.
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Total stats */}
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="shadow-sm">
           <CardContent className="p-3 sm:p-4">
@@ -157,19 +184,84 @@ const VaultsPanel = () => {
         </Card>
       </div>
 
-      {/* Create vault form */}
-      {showCreate && !locked && (
-        <Card className="shadow-sm border-primary/20">
-          <CardContent className="p-4 sm:p-5 space-y-4">
-            <h3 className="text-sm font-sans font-semibold text-foreground">Create New Vault</h3>
+      {/* Vault list */}
+      <div className="space-y-3">
+        {vaults.map(vault => (
+          <Card key={vault.id} className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-4 sm:p-5">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Wallet size={14} className="text-primary" />
+                  </div>
+                  <h3 className="text-sm font-sans font-semibold text-foreground truncate">{vault.name}</h3>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-sans font-medium capitalize ${tagColors[vault.tag] || tagColors.custom}`}>
+                    <Tag size={8} />
+                    {vault.tag}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">Balance</p>
+                    <p className="text-lg font-bold font-sans text-foreground">${vault.balance.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">APY</p>
+                    <p className="text-lg font-bold font-sans text-primary flex items-center gap-1">
+                      <TrendingUp size={14} />
+                      {vault.apy}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">Created</p>
+                    <p className="text-sm font-sans text-foreground flex items-center gap-1">
+                      <Clock size={12} className="text-muted-foreground" />
+                      {vault.createdAt}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="gap-1.5 font-sans text-xs flex-1 sm:flex-none"
+                    disabled={locked}
+                    onClick={() => { setDepositVault(vault); setDepositAmount(""); setDepositStep("form"); }}
+                  >
+                    <ArrowDownToLine size={12} />
+                    Deposit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 font-sans text-xs flex-1 sm:flex-none"
+                    disabled={locked || vault.balance <= 0}
+                    onClick={() => { setWithdrawVault(vault); setWithdrawAmount(""); setWithdrawStep("form"); }}
+                  >
+                    <ArrowUpFromLine size={12} />
+                    Withdraw
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Create Vault Modal */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg">Create New Vault</DialogTitle>
+            <DialogDescription className="font-sans text-sm">
+              Set up a new permissioned USDC vault with your preferred strategy.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Vault Name</label>
-              <Input
-                placeholder="e.g. Treasury Reserve"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                className="font-sans"
-              />
+              <Input placeholder="e.g. Treasury Reserve" value={newName} onChange={e => setNewName(e.target.value)} className="font-sans" />
             </div>
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Strategy Tag</label>
@@ -179,9 +271,7 @@ const VaultsPanel = () => {
                     key={tag}
                     onClick={() => setNewTag(tag)}
                     className={`px-3 py-1.5 rounded-full text-xs font-sans font-medium capitalize transition-all ${
-                      newTag === tag
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:text-foreground"
+                      newTag === tag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {tag}
@@ -189,125 +279,180 @@ const VaultsPanel = () => {
                 ))}
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleCreateVault} className="font-sans text-sm" size="sm">Create Vault</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)} className="font-sans text-sm" size="sm">Cancel</Button>
+            <div className="rounded-lg bg-muted p-3 space-y-1.5">
+              <p className="text-xs font-sans font-medium text-foreground">Vault Parameters</p>
+              <div className="grid grid-cols-2 gap-2 text-xs font-sans text-muted-foreground">
+                <span>Min Deposit:</span><span className="text-foreground">$10,000 USDC</span>
+                <span>Lock Period:</span><span className="text-foreground">30 days</span>
+                <span>Compliance:</span><span className="text-foreground">KYC + AML Required</span>
+                <span>Est. APY:</span><span className="text-primary font-medium">5-10%</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)} className="font-sans text-sm">Cancel</Button>
+            <Button onClick={handleCreateVault} disabled={!newName.trim()} className="font-sans text-sm">Create Vault</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Vault list */}
-      <div className="space-y-3">
-        {vaults.map(vault => (
-          <Card key={vault.id} className="shadow-sm">
-            <CardContent className="p-4 sm:p-5">
-              <div className="space-y-3">
-                {/* Vault header */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Wallet size={14} className="text-primary shrink-0" />
-                  <h3 className="text-sm font-sans font-semibold text-foreground truncate">{vault.name}</h3>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-sans font-medium capitalize ${tagColors[vault.tag] || tagColors.custom}`}>
-                    <Tag size={8} />
-                    {vault.tag}
-                  </span>
+      {/* Deposit Modal */}
+      <Dialog open={!!depositVault} onOpenChange={(open) => !open && closeDeposit()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg">
+              {depositStep === "done" ? "Deposit Complete" : `Deposit to ${depositVault?.name}`}
+            </DialogTitle>
+          </DialogHeader>
+          {depositVault && depositStep === "form" && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex justify-between text-xs font-sans">
+                  <span className="text-muted-foreground">Vault</span>
+                  <span className="text-foreground font-medium">{depositVault.name}</span>
                 </div>
-
-                {/* Stats row */}
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground font-sans">Balance</p>
-                    <p className="text-lg font-bold font-sans text-foreground">${vault.balance.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground font-sans">APY</p>
-                    <p className="text-lg font-bold font-sans text-primary flex items-center gap-1">
-                      <TrendingUp size={14} />
-                      {vault.apy}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground font-sans">Created</p>
-                    <p className="text-sm font-sans text-foreground">{vault.createdAt}</p>
-                  </div>
+                <div className="flex justify-between text-xs font-sans">
+                  <span className="text-muted-foreground">Current Balance</span>
+                  <span className="text-foreground font-medium">${depositVault.balance.toLocaleString()}</span>
                 </div>
-
-                {/* Action buttons - stack on mobile */}
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1 font-sans text-xs flex-1 sm:flex-none"
-                    disabled={locked}
-                    onClick={() => {
-                      setDepositVaultId(depositVaultId === vault.id ? null : vault.id);
-                      setWithdrawVaultId(null);
-                    }}
-                  >
-                    <ArrowDownToLine size={12} />
-                    Deposit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1 font-sans text-xs flex-1 sm:flex-none"
-                    disabled={locked || vault.balance <= 0}
-                    onClick={() => {
-                      setWithdrawVaultId(withdrawVaultId === vault.id ? null : vault.id);
-                      setDepositVaultId(null);
-                    }}
-                  >
-                    <ArrowUpFromLine size={12} />
-                    Withdraw
-                  </Button>
+                <div className="flex justify-between text-xs font-sans">
+                  <span className="text-muted-foreground">APY</span>
+                  <span className="text-primary font-medium">{depositVault.apy}%</span>
                 </div>
               </div>
-
-              {/* Deposit inline form */}
-              {depositVaultId === vault.id && !locked && (
-                <div className="mt-4 pt-4 border-t border-border space-y-3 sm:space-y-0 sm:flex sm:items-end sm:gap-3">
-                  <div className="flex-1">
-                    <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-1 block">Deposit USDC</label>
-                    <Input
-                      type="number"
-                      placeholder="50,000"
-                      value={depositAmount}
-                      onChange={e => setDepositAmount(e.target.value)}
-                      className="font-sans"
-                      min="1"
-                    />
-                  </div>
-                  <Button size="sm" className="font-sans text-xs w-full sm:w-auto" onClick={() => handleDeposit(vault.id)}>
-                    Confirm Deposit
-                  </Button>
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Amount (USDC)</label>
+                <div className="relative">
+                  <Input type="number" placeholder="50,000" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} className="font-sans text-lg pr-16" min="1" />
+                  <button onClick={() => setDepositAmount("250000")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary font-sans font-medium hover:underline">MAX</button>
                 </div>
-              )}
-
-              {/* Withdraw inline form */}
-              {withdrawVaultId === vault.id && !locked && (
-                <div className="mt-4 pt-4 border-t border-border space-y-3 sm:space-y-0 sm:flex sm:items-end sm:gap-3">
-                  <div className="flex-1">
-                    <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-1 block">Withdraw USDC</label>
-                    <Input
-                      type="number"
-                      placeholder="10,000"
-                      value={withdrawAmount}
-                      onChange={e => setWithdrawAmount(e.target.value)}
-                      className="font-sans"
-                      min="1"
-                      max={vault.balance.toString()}
-                    />
-                    <p className="text-[10px] text-muted-foreground font-sans mt-1">Available: ${vault.balance.toLocaleString()}</p>
-                  </div>
-                  <Button size="sm" variant="destructive" className="font-sans text-xs w-full sm:w-auto" onClick={() => handleWithdraw(vault.id)}>
-                    Confirm Withdrawal
-                  </Button>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeDeposit} className="font-sans text-sm">Cancel</Button>
+                <Button onClick={handleDeposit} disabled={!depositAmount || parseFloat(depositAmount) <= 0} className="font-sans text-sm gap-1.5">
+                  <ArrowDownToLine size={14} />
+                  Continue
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+          {depositVault && depositStep === "confirm" && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted p-4 text-center space-y-2">
+                <p className="text-2xl font-bold font-sans text-foreground">${parseFloat(depositAmount).toLocaleString()} USDC</p>
+                <p className="text-xs text-muted-foreground font-sans">→ {depositVault.name}</p>
+              </div>
+              <div className="rounded-lg border border-border divide-y divide-border">
+                <div className="flex justify-between px-4 py-2 text-xs font-sans">
+                  <span className="text-muted-foreground">Network Fee</span><span className="text-foreground">~0.00025 SOL</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <div className="flex justify-between px-4 py-2 text-xs font-sans">
+                  <span className="text-muted-foreground">Compliance</span><span className="text-primary">✓ Verified</span>
+                </div>
+                <div className="flex justify-between px-4 py-2 text-xs font-sans">
+                  <span className="text-muted-foreground">Lock Period</span><span className="text-foreground">30 days</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3">
+                <AlertTriangle size={14} className="text-yellow-600 mt-0.5 shrink-0" />
+                <p className="text-xs font-sans text-foreground">Deposits are subject to a 30-day lock period. Early withdrawal may incur penalties.</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDepositStep("form")} className="font-sans text-sm">Back</Button>
+                <Button onClick={confirmDeposit} className="font-sans text-sm gap-1.5">
+                  <Shield size={14} />
+                  Confirm Deposit
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+          {depositStep === "done" && (
+            <div className="space-y-4 text-center py-4">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <ArrowDownToLine size={24} className="text-primary" />
+              </div>
+              <p className="text-lg font-bold font-sans text-foreground">${parseFloat(depositAmount).toLocaleString()} USDC deposited</p>
+              <p className="text-xs text-muted-foreground font-sans">Transaction submitted. Compliance checks passed.</p>
+              <Button onClick={closeDeposit} className="font-sans text-sm">Done</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw Modal */}
+      <Dialog open={!!withdrawVault} onOpenChange={(open) => !open && closeWithdraw()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg">
+              {withdrawStep === "done" ? "Withdrawal Complete" : `Withdraw from ${withdrawVault?.name}`}
+            </DialogTitle>
+          </DialogHeader>
+          {withdrawVault && withdrawStep === "form" && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex justify-between text-xs font-sans">
+                  <span className="text-muted-foreground">Available Balance</span>
+                  <span className="text-foreground font-medium">${withdrawVault.balance.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Amount (USDC)</label>
+                <div className="relative">
+                  <Input type="number" placeholder="10,000" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} className="font-sans text-lg pr-16" min="1" max={withdrawVault.balance.toString()} />
+                  <button onClick={() => setWithdrawAmount(withdrawVault.balance.toString())} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary font-sans font-medium hover:underline">MAX</button>
+                </div>
+                <p className="text-[10px] text-muted-foreground font-sans">Available: ${withdrawVault.balance.toLocaleString()}</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeWithdraw} className="font-sans text-sm">Cancel</Button>
+                <Button variant="destructive" onClick={handleWithdraw} disabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > withdrawVault.balance} className="font-sans text-sm gap-1.5">
+                  <ArrowUpFromLine size={14} />
+                  Continue
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+          {withdrawVault && withdrawStep === "confirm" && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-destructive/5 p-4 text-center space-y-2">
+                <p className="text-2xl font-bold font-sans text-foreground">${parseFloat(withdrawAmount).toLocaleString()} USDC</p>
+                <p className="text-xs text-muted-foreground font-sans">← {withdrawVault.name}</p>
+              </div>
+              <div className="rounded-lg border border-border divide-y divide-border">
+                <div className="flex justify-between px-4 py-2 text-xs font-sans">
+                  <span className="text-muted-foreground">Network Fee</span><span className="text-foreground">~0.00025 SOL</span>
+                </div>
+                <div className="flex justify-between px-4 py-2 text-xs font-sans">
+                  <span className="text-muted-foreground">Travel Rule</span><span className="text-primary">✓ Logged</span>
+                </div>
+                <div className="flex justify-between px-4 py-2 text-xs font-sans">
+                  <span className="text-muted-foreground">Remaining Balance</span>
+                  <span className="text-foreground">${(withdrawVault.balance - parseFloat(withdrawAmount)).toLocaleString()}</span>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setWithdrawStep("form")} className="font-sans text-sm">Back</Button>
+                <Button variant="destructive" onClick={confirmWithdraw} className="font-sans text-sm gap-1.5">
+                  <Shield size={14} />
+                  Confirm Withdrawal
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+          {withdrawStep === "done" && (
+            <div className="space-y-4 text-center py-4">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <ArrowUpFromLine size={24} className="text-primary" />
+              </div>
+              <p className="text-lg font-bold font-sans text-foreground">${parseFloat(withdrawAmount).toLocaleString()} USDC withdrawn</p>
+              <p className="text-xs text-muted-foreground font-sans">Funds sent to your connected wallet.</p>
+              <Button onClick={closeWithdraw} className="font-sans text-sm">Done</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
     </div>
   );
 };
