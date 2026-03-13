@@ -1,77 +1,214 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
-interface ComplianceStep {
+export type ComplianceStatus = "pending" | "in_progress" | "verified" | "failed" | "expired";
+
+export interface ComplianceVerification {
+  hash: string | null;
+  timestamp: string | null;
+  expiresAt: string | null;
+  riskScore: string | null;
+  errorMessage: string | null;
+}
+
+export interface ComplianceStep {
   id: string;
   title: string;
+  description: string;
   provider: string;
-  status: "pending" | "verifying" | "verified";
+  providerUrl: string;
+  status: ComplianceStatus;
+  statusLabel: string;
+  verification: ComplianceVerification;
 }
 
 interface ComplianceContextType {
   steps: ComplianceStep[];
   isFullyCompliant: boolean;
-  verifyStep: (id: string) => void;
-  verifyAll: () => void;
+  completedCount: number;
+  totalCount: number;
+  /** Called by the API layer when a verification result comes back */
+  updateStepStatus: (id: string, status: ComplianceStatus, verification?: Partial<ComplianceVerification>) => void;
+  /** Called to initiate a verification — wire this to your edge function / API */
+  initiateVerification: (id: string) => void;
+  /** Reset a single step (e.g. on expiry or re-verification) */
+  resetStep: (id: string) => void;
+  /** Reset all steps */
+  resetAll: () => void;
 }
 
+const STATUS_LABELS: Record<ComplianceStatus, string> = {
+  pending: "Not Started",
+  in_progress: "Verifying…",
+  verified: "Verified",
+  failed: "Failed",
+  expired: "Expired",
+};
+
+const emptyVerification: ComplianceVerification = {
+  hash: null,
+  timestamp: null,
+  expiresAt: null,
+  riskScore: null,
+  errorMessage: null,
+};
+
 const defaultSteps: ComplianceStep[] = [
-  { id: "kyc", title: "KYC — Identity Verification", provider: "Civic Pass", status: "pending" },
-  { id: "aml", title: "AML — Anti-Money Laundering", provider: "TRM Labs", status: "pending" },
-  { id: "travel", title: "Travel Rule — IVMS-101", provider: "Notabene", status: "pending" },
-  { id: "sof", title: "Source of Funds", provider: "On-Chain Hash", status: "pending" },
+  {
+    id: "kyc",
+    title: "KYC — Identity Verification",
+    description: "Verify organization identity via Civic Pass on-chain gate. Required for all vault operations.",
+    provider: "Civic Pass",
+    providerUrl: "https://civic.com",
+    status: "pending",
+    statusLabel: STATUS_LABELS.pending,
+    verification: { ...emptyVerification },
+  },
+  {
+    id: "aml",
+    title: "AML — Anti-Money Laundering",
+    description: "Screen connected wallet against TRM Labs sanctions, darknet, and mixer databases.",
+    provider: "TRM Labs",
+    providerUrl: "https://www.trmlabs.com",
+    status: "pending",
+    statusLabel: STATUS_LABELS.pending,
+    verification: { ...emptyVerification },
+  },
+  {
+    id: "travel",
+    title: "Travel Rule — IVMS-101",
+    description: "Transmit IVMS-101 originator/beneficiary data for transfers ≥ $1,000 via Notabene.",
+    provider: "Notabene",
+    providerUrl: "https://notabene.id",
+    status: "pending",
+    statusLabel: STATUS_LABELS.pending,
+    verification: { ...emptyVerification },
+  },
+  {
+    id: "sof",
+    title: "Source of Funds Attestation",
+    description: "SHA-256 hash of source-of-funds attestation stored on-chain via PDA.",
+    provider: "On-Chain PDA",
+    providerUrl: "",
+    status: "pending",
+    statusLabel: STATUS_LABELS.pending,
+    verification: { ...emptyVerification },
+  },
 ];
+
+const STORAGE_KEY = "fortis_compliance_v2";
 
 const ComplianceContext = createContext<ComplianceContextType>({
   steps: defaultSteps,
   isFullyCompliant: false,
-  verifyStep: () => {},
-  verifyAll: () => {},
+  completedCount: 0,
+  totalCount: 4,
+  updateStepStatus: () => {},
+  initiateVerification: () => {},
+  resetStep: () => {},
+  resetAll: () => {},
 });
 
 export const useCompliance = () => useContext(ComplianceContext);
 
 export const ComplianceProvider = ({ children }: { children: ReactNode }) => {
   const [steps, setSteps] = useState<ComplianceStep[]>(() => {
-    const saved = sessionStorage.getItem("fortis_compliance");
-    return saved ? JSON.parse(saved) : defaultSteps;
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return defaultSteps;
   });
 
   const persist = (updated: ComplianceStep[]) => {
     setSteps(updated);
-    sessionStorage.setItem("fortis_compliance", JSON.stringify(updated));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  const verifyStep = useCallback((id: string) => {
+  const updateStepStatus = useCallback((
+    id: string,
+    status: ComplianceStatus,
+    verification?: Partial<ComplianceVerification>
+  ) => {
     setSteps(prev => {
       const updated = prev.map(s =>
-        s.id === id ? { ...s, status: "verifying" as const } : s
+        s.id === id
+          ? {
+              ...s,
+              status,
+              statusLabel: STATUS_LABELS[status],
+              verification: { ...s.verification, ...verification },
+            }
+          : s
       );
-      sessionStorage.setItem("fortis_compliance", JSON.stringify(updated));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
-
-    setTimeout(() => {
-      setSteps(prev => {
-        const updated = prev.map(s =>
-          s.id === id ? { ...s, status: "verified" as const } : s
-        );
-        sessionStorage.setItem("fortis_compliance", JSON.stringify(updated));
-        return updated;
-      });
-    }, 1500);
   }, []);
 
-  const verifyAll = useCallback(() => {
-    const ids = defaultSteps.map(s => s.id);
-    ids.forEach((id, i) => {
-      setTimeout(() => verifyStep(id), i * 800);
-    });
-  }, [verifyStep]);
+  /**
+   * Initiates a verification flow for a step.
+   * 
+   * INTEGRATION POINT: Replace the body of this function with a call
+   * to your edge function / API endpoint. Example:
+   * 
+   * ```ts
+   * const res = await fetch('/api/compliance/verify', {
+   *   method: 'POST',
+   *   body: JSON.stringify({ stepId: id, walletAddress }),
+   * });
+   * const data = await res.json();
+   * updateStepStatus(id, data.status, data.verification);
+   * ```
+   * 
+   * For now, it sets status to "in_progress" so the UI reflects the loading state.
+   * The actual verification result should come back via `updateStepStatus`.
+   */
+  const initiateVerification = useCallback((id: string) => {
+    updateStepStatus(id, "in_progress");
 
-  const isFullyCompliant = steps.every(s => s.status === "verified");
+    // TODO: Replace with real API call
+    // This is a placeholder that auto-completes after 2s for demo purposes.
+    // Remove this entire setTimeout block when wiring to real APIs.
+    setTimeout(() => {
+      const now = new Date();
+      const expiry = new Date(now);
+      expiry.setMonth(expiry.getMonth() + 3);
+
+      const mockVerification: Partial<ComplianceVerification> = {
+        hash: `0x${Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
+        timestamp: now.toISOString(),
+        expiresAt: expiry.toISOString(),
+        riskScore: id === "aml" ? "Low" : null,
+        errorMessage: null,
+      };
+      updateStepStatus(id, "verified", mockVerification);
+    }, 2000);
+  }, [updateStepStatus]);
+
+  const resetStep = useCallback((id: string) => {
+    updateStepStatus(id, "pending", { ...emptyVerification });
+  }, [updateStepStatus]);
+
+  const resetAll = useCallback(() => {
+    persist(defaultSteps);
+  }, []);
+
+  const completedCount = steps.filter(s => s.status === "verified").length;
+  const isFullyCompliant = completedCount === steps.length;
 
   return (
-    <ComplianceContext.Provider value={{ steps, isFullyCompliant, verifyStep, verifyAll }}>
+    <ComplianceContext.Provider
+      value={{
+        steps,
+        isFullyCompliant,
+        completedCount,
+        totalCount: steps.length,
+        updateStepStatus,
+        initiateVerification,
+        resetStep,
+        resetAll,
+      }}
+    >
       {children}
     </ComplianceContext.Provider>
   );

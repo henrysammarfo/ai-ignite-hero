@@ -1,7 +1,10 @@
-import { TrendingUp, Shield, DollarSign, Clock, Activity, CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { TrendingUp, Shield, DollarSign, Clock, Activity, CheckCircle2, Circle, Loader2, AlertTriangle, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
-import { useCompliance } from "@/contexts/ComplianceContext";
+import { useCompliance, ComplianceStatus } from "@/contexts/ComplianceContext";
+import WalletConnectModal from "./WalletConnectModal";
+import { useState } from "react";
 
 const stats = [
   { label: "Total Deposited", value: "$250,000.00", change: "+2.4%", icon: DollarSign },
@@ -10,9 +13,18 @@ const stats = [
   { label: "Next Payout", value: "2d 14h", change: "Mar 14", icon: Clock },
 ];
 
+const statusIcons: Record<ComplianceStatus, typeof CheckCircle2> = {
+  pending: Circle,
+  in_progress: Loader2,
+  verified: CheckCircle2,
+  failed: AlertTriangle,
+  expired: Clock,
+};
+
 const OverviewPanel = () => {
   const { connected } = useWallet();
-  const { steps } = useCompliance();
+  const { steps, completedCount, totalCount } = useCompliance();
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   if (!connected) {
     return (
@@ -25,6 +37,11 @@ const OverviewPanel = () => {
           <p className="text-sm text-muted-foreground max-w-sm font-sans">
             Connect a Solana wallet to access your institutional vault dashboard.
           </p>
+          <Button onClick={() => setWalletModalOpen(true)} className="gap-2 font-sans">
+            <Wallet size={14} />
+            Connect Wallet
+          </Button>
+          <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
         </div>
       </div>
     );
@@ -38,17 +55,17 @@ const OverviewPanel = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat) => (
           <Card key={stat.label} className="shadow-sm">
-            <CardContent className="p-5">
+            <CardContent className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-foreground font-sans uppercase tracking-wider">{stat.label}</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground font-sans uppercase tracking-wider">{stat.label}</span>
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <stat.icon size={14} className="text-primary" />
                 </div>
               </div>
-              <p className="text-2xl font-bold font-sans text-foreground">{stat.value}</p>
+              <p className="text-lg sm:text-2xl font-bold font-sans text-foreground">{stat.value}</p>
               <p className="text-xs text-primary font-sans font-medium mt-1">{stat.change}</p>
             </CardContent>
           </Card>
@@ -61,31 +78,31 @@ const OverviewPanel = () => {
           <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
             <Shield size={16} className="text-primary" />
             Compliance Status
+            <span className="text-xs font-normal text-muted-foreground ml-auto">{completedCount}/{totalCount}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {steps.map((step) => (
-              <span
-                key={step.id}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-sans font-medium ring-1 ring-inset ${
-                  step.status === "verified"
-                    ? "bg-primary/10 text-primary ring-primary/20"
-                    : step.status === "verifying"
-                    ? "bg-muted text-muted-foreground ring-border"
-                    : "bg-muted text-muted-foreground ring-border"
-                }`}
-              >
-                {step.status === "verified" ? (
-                  <CheckCircle2 size={10} />
-                ) : step.status === "verifying" ? (
-                  <Loader2 size={10} className="animate-spin" />
-                ) : (
-                  <Circle size={10} />
-                )}
-                {step.title.split("—")[0].trim()}
-              </span>
-            ))}
+            {steps.map((step) => {
+              const Icon = statusIcons[step.status];
+              return (
+                <span
+                  key={step.id}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-sans font-medium ring-1 ring-inset ${
+                    step.status === "verified"
+                      ? "bg-primary/10 text-primary ring-primary/20"
+                      : step.status === "in_progress"
+                      ? "bg-muted text-muted-foreground ring-border"
+                      : step.status === "failed"
+                      ? "bg-destructive/10 text-destructive ring-destructive/20"
+                      : "bg-muted text-muted-foreground ring-border"
+                  }`}
+                >
+                  <Icon size={10} className={step.status === "in_progress" ? "animate-spin" : ""} />
+                  {step.title.split("—")[0].trim()}
+                </span>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
