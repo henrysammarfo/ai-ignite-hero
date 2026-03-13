@@ -88,7 +88,7 @@ const TransactionsPanel = () => {
           />
         </div>
         <Button
-          variant={filterType !== "all" ? "default" : "outline"}
+          variant={filterType !== "all" ? "default" : "secondary"}
           className="gap-2 font-sans text-sm shrink-0"
           onClick={() => setShowFilter(!showFilter)}
         >
