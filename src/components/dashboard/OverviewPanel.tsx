@@ -1,6 +1,7 @@
-import { TrendingUp, Shield, DollarSign, Clock, Activity } from "lucide-react";
+import { TrendingUp, Shield, DollarSign, Clock, Activity, CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWallet } from "@/contexts/WalletContext";
+import { useCompliance } from "@/contexts/ComplianceContext";
 
 const stats = [
   { label: "Total Deposited", value: "$250,000.00", change: "+2.4%", icon: DollarSign },
