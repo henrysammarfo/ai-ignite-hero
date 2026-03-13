@@ -417,7 +417,7 @@ const VaultsPanel = () => {
               <Button onClick={closeDeposit} className="font-sans text-sm">Done</Button>
             </div>
           )}
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
 
       {/* Withdraw Modal */}
