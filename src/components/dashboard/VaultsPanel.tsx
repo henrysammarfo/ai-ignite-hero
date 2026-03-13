@@ -339,7 +339,7 @@ const VaultsPanel = () => {
 
       {/* Deposit Modal */}
       <Dialog open={!!depositVault} onOpenChange={(open) => !open && closeDeposit()}>
-        <DialogContent className="max-w-md">
+        <ThemedDialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
               {depositStep === "done" ? "Deposit Complete" : `Deposit to ${depositVault?.name}`}
