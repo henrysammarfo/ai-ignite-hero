@@ -32,6 +32,7 @@ const Login = () => {
     } else {
       toast.success("Signed in successfully");
     }
+    login(email, "email");
     setTimeout(() => navigate("/dashboard"), 600);
   };
 
