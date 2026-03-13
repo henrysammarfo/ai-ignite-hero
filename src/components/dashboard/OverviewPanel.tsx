@@ -12,6 +12,7 @@ const stats = [
 
 const OverviewPanel = () => {
   const { connected } = useWallet();
+  const { steps } = useCompliance();
 
   if (!connected) {
     return (
