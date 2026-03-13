@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ArrowDownToLine, Info, CheckCircle2 } from "lucide-react";
+import { ArrowDownToLine, Info, CheckCircle2, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWallet } from "@/contexts/WalletContext";
+import { useCompliance } from "@/contexts/ComplianceContext";
 
 const DepositPanel = () => {
   const { connected } = useWallet();
