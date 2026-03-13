@@ -15,6 +15,7 @@ interface DashboardSidebarProps {
 
 const navItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "vaults", label: "Vaults", icon: Vault },
   { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
   { id: "compliance", label: "Compliance", icon: Shield },
   { id: "deposit", label: "Deposit", icon: ArrowDownToLine },
