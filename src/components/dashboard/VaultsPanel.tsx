@@ -3,7 +3,7 @@ import { Plus, Wallet, Tag, ArrowUpFromLine, ArrowDownToLine, TrendingUp, Shield
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ThemedDialog";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
