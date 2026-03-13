@@ -82,7 +82,7 @@ const WalletConnectModal = ({ open, onOpenChange, onConnected }: WalletConnectMo
         <p className="text-[10px] text-muted-foreground font-sans text-center pt-2">
           Your wallet will be verified for KYC/AML compliance before vault access is granted.
         </p>
-      </DialogContent>
+      </ThemedDialogContent>
     </Dialog>
   );
 };

@@ -188,7 +188,7 @@ const ReportsPanel = () => {
               </Button>
             </div>
           )}
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
 
       <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
