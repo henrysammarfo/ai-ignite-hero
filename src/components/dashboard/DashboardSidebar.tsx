@@ -25,6 +25,8 @@ const navItems = [
 
 const SidebarInner = ({ activeTab, onTabChange, onNavigate }: DashboardSidebarProps & { onNavigate?: () => void }) => {
   const { connected, address, connect, disconnect } = useWallet();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleTabChange = (tab: string) => {
     onTabChange(tab);
