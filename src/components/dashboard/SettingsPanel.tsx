@@ -94,17 +94,6 @@ const SettingsPanel = () => {
         <CardContent>
           <div className="flex gap-3">
             <button
-              onClick={() => handleThemeChange("light")}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all font-sans text-sm font-medium ${
-                theme === "light"
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-border text-muted-foreground hover:border-muted-foreground/30"
-              }`}
-            >
-              <Sun size={18} />
-              Light
-            </button>
-            <button
               onClick={() => handleThemeChange("dark")}
               className={`flex-1 flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all font-sans text-sm font-medium ${
                 theme === "dark"
@@ -114,6 +103,18 @@ const SettingsPanel = () => {
             >
               <Moon size={18} />
               Dark
+              <span className="text-[10px] uppercase tracking-wider opacity-60 ml-1">Default</span>
+            </button>
+            <button
+              onClick={() => handleThemeChange("light")}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all font-sans text-sm font-medium ${
+                theme === "light"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border text-muted-foreground hover:border-muted-foreground/30"
+              }`}
+            >
+              <Sun size={18} />
+              Light
             </button>
           </div>
         </CardContent>

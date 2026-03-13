@@ -3,7 +3,7 @@ import { ArrowUpRight, ArrowDownLeft, Search, Filter, ExternalLink, Copy, X } fr
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle } from "./ThemedDialog";
 import { toast } from "sonner";
 
 interface Transaction {
@@ -88,7 +88,7 @@ const TransactionsPanel = () => {
           />
         </div>
         <Button
-          variant={filterType !== "all" ? "default" : "outline"}
+          variant={filterType !== "all" ? "default" : "secondary"}
           className="gap-2 font-sans text-sm shrink-0"
           onClick={() => setShowFilter(!showFilter)}
         >
@@ -187,7 +187,7 @@ const TransactionsPanel = () => {
 
       {/* Transaction Detail Modal */}
       <Dialog open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
-        <DialogContent className="max-w-lg">
+        <ThemedDialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">Transaction Details</DialogTitle>
           </DialogHeader>
@@ -258,7 +258,7 @@ const TransactionsPanel = () => {
               </Button>
             </div>
           )}
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Wallet, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle, DialogDescription } from "./ThemedDialog";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "sonner";
@@ -31,7 +31,7 @@ const WalletConnectModal = ({ open, onOpenChange, onConnected }: WalletConnectMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <ThemedDialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-serif text-lg">Connect Wallet</DialogTitle>
           <DialogDescription className="font-sans text-xs">
@@ -82,7 +82,7 @@ const WalletConnectModal = ({ open, onOpenChange, onConnected }: WalletConnectMo
         <p className="text-[10px] text-muted-foreground font-sans text-center pt-2">
           Your wallet will be verified for KYC/AML compliance before vault access is granted.
         </p>
-      </DialogContent>
+      </ThemedDialogContent>
     </Dialog>
   );
 };

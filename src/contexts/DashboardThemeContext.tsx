@@ -17,7 +17,7 @@ const DashboardThemeContext = createContext<DashboardThemeContextType>({
 export const useDashboardTheme = () => useContext(DashboardThemeContext);
 
 export const DashboardThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setThemeState] = useState<ThemeMode>("light");
+  const [theme, setThemeState] = useState<ThemeMode>("dark");
 
   const setTheme = useCallback((mode: ThemeMode) => {
     setThemeState(mode);

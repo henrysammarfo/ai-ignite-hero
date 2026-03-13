@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FileText, Download, Eye, Loader2, Wallet, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle } from "./ThemedDialog";
 import { useWallet } from "@/contexts/WalletContext";
 import { generateReport, getReportPreviewData } from "@/lib/generateReport";
 import { toast } from "sonner";
@@ -149,7 +149,7 @@ const ReportsPanel = () => {
 
       {/* Report Preview Modal */}
       <Dialog open={!!previewData} onOpenChange={(open) => { if (!open) { setPreviewData(null); setPreviewReport(null); } }}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <ThemedDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">{previewData?.title}</DialogTitle>
             <p className="text-xs text-muted-foreground font-sans">{previewData?.subtitle}</p>
@@ -188,7 +188,7 @@ const ReportsPanel = () => {
               </Button>
             </div>
           )}
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
 
       <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />

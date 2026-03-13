@@ -3,7 +3,7 @@ import { Plus, Wallet, Tag, ArrowUpFromLine, ArrowDownToLine, TrendingUp, Shield
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ThemedDialog";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
@@ -16,11 +16,19 @@ interface Vault {
   balance: number;
   apy: number;
   createdAt: string;
+  lockDays: number;
+  minDeposit: number;
 }
 
+const strategyDefaults: Record<string, { lockDays: number; minDeposit: number; apyRange: string }> = {
+  conservative: { lockDays: 90, minDeposit: 50000, apyRange: "4-6%" },
+  growth: { lockDays: 30, minDeposit: 10000, apyRange: "7-10%" },
+  custom: { lockDays: 30, minDeposit: 1000, apyRange: "Variable" },
+};
+
 const defaultVaults: Vault[] = [
-  { id: "v1", name: "Treasury Reserve", tag: "conservative", balance: 150000, apy: 6.8, createdAt: "2026-02-15" },
-  { id: "v2", name: "Yield Pool Alpha", tag: "growth", balance: 100000, apy: 9.4, createdAt: "2026-03-01" },
+  { id: "v1", name: "Treasury Reserve", tag: "conservative", balance: 150000, apy: 6.8, createdAt: "2026-02-15", lockDays: 90, minDeposit: 50000 },
+  { id: "v2", name: "Yield Pool Alpha", tag: "growth", balance: 100000, apy: 9.4, createdAt: "2026-03-01", lockDays: 30, minDeposit: 10000 },
 ];
 
 const tagColors: Record<string, string> = {
@@ -39,6 +47,8 @@ const VaultsPanel = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newTag, setNewTag] = useState("conservative");
+  const [customLockDays, setCustomLockDays] = useState("30");
+  const [customMinDeposit, setCustomMinDeposit] = useState("1000");
 
   // Deposit modal
   const [depositVault, setDepositVault] = useState<Vault | null>(null);
@@ -77,6 +87,9 @@ const VaultsPanel = () => {
 
   const handleCreateVault = () => {
     if (!newName.trim()) return;
+    const defaults = strategyDefaults[newTag] || strategyDefaults.custom;
+    const lockDays = newTag === "custom" ? parseInt(customLockDays) || 30 : defaults.lockDays;
+    const minDeposit = newTag === "custom" ? parseInt(customMinDeposit) || 1000 : defaults.minDeposit;
     const vault: Vault = {
       id: `v${Date.now()}`,
       name: newName,
@@ -84,10 +97,14 @@ const VaultsPanel = () => {
       balance: 0,
       apy: parseFloat((5 + Math.random() * 5).toFixed(1)),
       createdAt: new Date().toISOString().split("T")[0],
+      lockDays,
+      minDeposit,
     };
     setVaults([...vaults, vault]);
     setNewName("");
     setNewTag("conservative");
+    setCustomLockDays("30");
+    setCustomMinDeposit("1000");
     setShowCreate(false);
     toast.success(`Vault "${vault.name}" created`);
   };
@@ -251,7 +268,7 @@ const VaultsPanel = () => {
 
       {/* Create Vault Modal */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-md">
+        <ThemedDialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">Create New Vault</DialogTitle>
             <DialogDescription className="font-sans text-sm">
@@ -279,13 +296,37 @@ const VaultsPanel = () => {
                 ))}
               </div>
             </div>
+
+            {/* Custom strategy inputs */}
+            {newTag === "custom" && (
+              <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <p className="text-xs font-sans font-semibold text-primary uppercase tracking-wider">Custom Parameters</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">Lock Period (days)</label>
+                    <Input type="number" value={customLockDays} onChange={e => setCustomLockDays(e.target.value)} className="font-sans text-sm" min="1" max="365" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">Min Deposit (USDC)</label>
+                    <Input type="number" value={customMinDeposit} onChange={e => setCustomMinDeposit(e.target.value)} className="font-sans text-sm" min="100" />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-lg bg-muted p-3 space-y-1.5">
               <p className="text-xs font-sans font-medium text-foreground">Vault Parameters</p>
               <div className="grid grid-cols-2 gap-2 text-xs font-sans text-muted-foreground">
-                <span>Min Deposit:</span><span className="text-foreground">$10,000 USDC</span>
-                <span>Lock Period:</span><span className="text-foreground">30 days</span>
+                <span>Min Deposit:</span>
+                <span className="text-foreground">
+                  ${newTag === "custom" ? parseInt(customMinDeposit || "1000").toLocaleString() : strategyDefaults[newTag]?.minDeposit.toLocaleString()} USDC
+                </span>
+                <span>Lock Period:</span>
+                <span className="text-foreground">
+                  {newTag === "custom" ? (customLockDays || "30") : strategyDefaults[newTag]?.lockDays} days
+                </span>
                 <span>Compliance:</span><span className="text-foreground">KYC + AML Required</span>
-                <span>Est. APY:</span><span className="text-primary font-medium">5-10%</span>
+                <span>Est. APY:</span><span className="text-primary font-medium">{strategyDefaults[newTag]?.apyRange || "Variable"}</span>
               </div>
             </div>
           </div>
@@ -293,12 +334,12 @@ const VaultsPanel = () => {
             <Button variant="outline" onClick={() => setShowCreate(false)} className="font-sans text-sm">Cancel</Button>
             <Button onClick={handleCreateVault} disabled={!newName.trim()} className="font-sans text-sm">Create Vault</Button>
           </DialogFooter>
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
 
       {/* Deposit Modal */}
       <Dialog open={!!depositVault} onOpenChange={(open) => !open && closeDeposit()}>
-        <DialogContent className="max-w-md">
+        <ThemedDialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
               {depositStep === "done" ? "Deposit Complete" : `Deposit to ${depositVault?.name}`}
@@ -376,12 +417,12 @@ const VaultsPanel = () => {
               <Button onClick={closeDeposit} className="font-sans text-sm">Done</Button>
             </div>
           )}
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
 
       {/* Withdraw Modal */}
       <Dialog open={!!withdrawVault} onOpenChange={(open) => !open && closeWithdraw()}>
-        <DialogContent className="max-w-md">
+        <ThemedDialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
               {withdrawStep === "done" ? "Withdrawal Complete" : `Withdraw from ${withdrawVault?.name}`}
@@ -449,7 +490,7 @@ const VaultsPanel = () => {
               <Button onClick={closeWithdraw} className="font-sans text-sm">Done</Button>
             </div>
           )}
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
 
       <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
