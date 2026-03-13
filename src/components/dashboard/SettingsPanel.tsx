@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { useWallet } from "@/contexts/WalletContext";
 import { useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import { toast } from "sonner";
 
@@ -29,7 +28,6 @@ const defaultNotifs: Record<string, boolean> = {
 };
 
 const SettingsPanel = () => {
-  const { connected } = useWallet();
   const { theme, setTheme } = useDashboardTheme();
   const [notifs, setNotifs] = useState<Record<string, boolean>>(defaultNotifs);
   const [org, setOrg] = useState("Acme Capital AG");
@@ -51,14 +49,6 @@ const SettingsPanel = () => {
   const handleSave = () => {
     toast.success("Settings saved successfully", { duration: 2000 });
   };
-
-  if (!connected) {
-    return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted-foreground font-sans">Connect wallet to access settings.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 max-w-2xl">

@@ -1,8 +1,7 @@
 import { ArrowUpRight, ArrowDownLeft, Search, Filter } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useWallet } from "@/contexts/WalletContext";
 
 const transactions = [
   { id: "tx-001", type: "deposit" as const, amount: "+$50,000.00", token: "USDC", date: "Mar 10, 2026 · 14:23", hash: "5xKR...m9Fp", status: "Confirmed" },
@@ -22,16 +21,6 @@ const typeConfig = {
 };
 
 const TransactionsPanel = () => {
-  const { connected } = useWallet();
-
-  if (!connected) {
-    return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted-foreground font-sans">Connect wallet to view transactions.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div>
@@ -55,37 +44,37 @@ const TransactionsPanel = () => {
       <Card className="shadow-sm overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           <div className="min-w-[640px]">
-          {/* Header */}
-          <div className="grid grid-cols-6 text-xs text-muted-foreground font-sans uppercase tracking-wider py-3 px-5 border-b border-border">
-            <span>Type</span>
-            <span>Amount</span>
-            <span>Token</span>
-            <span>Date</span>
-            <span>Tx Hash</span>
-            <span className="text-right">Status</span>
-          </div>
-          {transactions.map((tx) => {
-            const config = typeConfig[tx.type];
-            return (
-              <div key={tx.id} className="grid grid-cols-6 text-sm font-sans py-3.5 px-5 border-b border-border last:border-0 items-center hover:bg-muted/30 transition-colors">
-                <div className="flex items-center gap-2">
-                  <config.icon size={14} className={config.color} />
-                  <span className="text-foreground font-medium">{config.label}</span>
-                </div>
-                <span className={`font-medium ${tx.type === "withdrawal" ? "text-red-500" : "text-foreground"}`}>
-                  {tx.amount}
-                </span>
-                <span className="text-muted-foreground">{tx.token}</span>
-                <span className="text-muted-foreground text-xs">{tx.date}</span>
-                <span className="text-muted-foreground font-mono text-xs">{tx.hash}</span>
-                <span className="text-right">
-                  <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200">
-                    {tx.status}
+            {/* Header */}
+            <div className="grid grid-cols-6 text-xs text-muted-foreground font-sans uppercase tracking-wider py-3 px-5 border-b border-border">
+              <span>Type</span>
+              <span>Amount</span>
+              <span>Token</span>
+              <span>Date</span>
+              <span>Tx Hash</span>
+              <span className="text-right">Status</span>
+            </div>
+            {transactions.map((tx) => {
+              const config = typeConfig[tx.type];
+              return (
+                <div key={tx.id} className="grid grid-cols-6 text-sm font-sans py-3.5 px-5 border-b border-border last:border-0 items-center hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <config.icon size={14} className={config.color} />
+                    <span className="text-foreground font-medium">{config.label}</span>
+                  </div>
+                  <span className={`font-medium ${tx.type === "withdrawal" ? "text-red-500" : "text-foreground"}`}>
+                    {tx.amount}
                   </span>
-                </span>
-              </div>
-            );
-          })}
+                  <span className="text-muted-foreground">{tx.token}</span>
+                  <span className="text-muted-foreground text-xs">{tx.date}</span>
+                  <span className="text-muted-foreground font-mono text-xs">{tx.hash}</span>
+                  <span className="text-right">
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
+                      {tx.status}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

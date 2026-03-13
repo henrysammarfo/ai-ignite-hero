@@ -1,25 +1,20 @@
 import { useState } from "react";
-import { ArrowDownToLine, Info, CheckCircle2, Lock } from "lucide-react";
+import { ArrowDownToLine, Info, CheckCircle2, Lock, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance } from "@/contexts/ComplianceContext";
+import WalletConnectModal from "./WalletConnectModal";
 
 const DepositPanel = () => {
   const { connected } = useWallet();
   const { isFullyCompliant } = useCompliance();
   const [amount, setAmount] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
   const locked = !isFullyCompliant;
-
-  if (!connected) {
-    return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted-foreground font-sans">Connect wallet to make deposits.</p>
-      </div>
-    );
-  }
+  const needsWallet = !connected;
 
   const handleDeposit = () => {
     if (!amount || parseFloat(amount) <= 0) return;
@@ -76,10 +71,12 @@ const DepositPanel = () => {
                 onChange={(e) => setAmount(e.target.value)}
                 className="font-sans text-lg pr-16"
                 min="10000"
+                disabled={needsWallet}
               />
               <button
                 onClick={() => setAmount("250000")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-primary font-sans font-medium hover:underline"
+                disabled={needsWallet}
               >
                 MAX
               </button>
@@ -93,7 +90,15 @@ const DepositPanel = () => {
             </p>
           </div>
 
-          {locked ? (
+          {needsWallet ? (
+            <>
+              <Button onClick={() => setWalletModalOpen(true)} className="w-full rounded-lg font-sans font-semibold gap-2" size="lg">
+                <Wallet size={16} />
+                Connect Wallet to Deposit
+              </Button>
+              <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
+            </>
+          ) : locked ? (
             <Button disabled className="w-full rounded-lg font-sans font-semibold gap-2" size="lg">
               <Lock size={16} />
               Complete Compliance to Deposit

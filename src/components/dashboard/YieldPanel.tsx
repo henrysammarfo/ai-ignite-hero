@@ -3,7 +3,6 @@ import { TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { useWallet } from "@/contexts/WalletContext";
 
 const allApyData = [
   { week: "Mar 15", apy: 6.8 },
@@ -62,20 +61,12 @@ const yieldHistory = [
 ];
 
 const YieldPanel = () => {
-  const { connected } = useWallet();
   const [range, setRange] = useState<TimeRange>("3M");
 
   const chartData = useMemo(() => {
     const points = timeRanges.find((r) => r.label === range)!.points;
     return allApyData.slice(-points);
   }, [range]);
-  if (!connected) {
-    return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted-foreground font-sans">Connect wallet to view yield data.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -153,7 +144,6 @@ const YieldPanel = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-0">
-            {/* Table header */}
             <div className="grid grid-cols-4 text-xs text-muted-foreground font-sans uppercase tracking-wider py-2 border-b border-border">
               <span>Date</span>
               <span>Amount</span>

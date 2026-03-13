@@ -1,10 +1,11 @@
-import { FileText, Download, Eye, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { FileText, Download, Eye, Loader2, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
 import { generateReport } from "@/lib/generateReport";
-import { useState } from "react";
 import { toast } from "sonner";
+import WalletConnectModal from "./WalletConnectModal";
 
 type ReportType = "FINMA" | "AML" | "Travel Rule" | "Performance";
 
@@ -18,9 +19,13 @@ const reports: { id: number; name: string; date: string; type: ReportType; statu
 const ReportsPanel = () => {
   const { connected, address } = useWallet();
   const [generating, setGenerating] = useState<number | null>(null);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const handleGenerate = async (report: typeof reports[0]) => {
-    if (!address) return;
+    if (!connected || !address) {
+      setWalletModalOpen(true);
+      return;
+    }
     setGenerating(report.id);
     try {
       await new Promise((r) => setTimeout(r, 400));
@@ -34,7 +39,10 @@ const ReportsPanel = () => {
   };
 
   const handleGenerateNew = async () => {
-    if (!address) return;
+    if (!connected || !address) {
+      setWalletModalOpen(true);
+      return;
+    }
     setGenerating(-1);
     try {
       await new Promise((r) => setTimeout(r, 400));
@@ -44,14 +52,6 @@ const ReportsPanel = () => {
       setGenerating(null);
     }
   };
-
-  if (!connected) {
-    return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted-foreground font-sans">Connect wallet to access reports.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -72,6 +72,18 @@ const ReportsPanel = () => {
           Generate New
         </Button>
       </div>
+
+      {!connected && (
+        <div className="rounded-lg bg-muted/50 border border-border p-4 flex items-center gap-3">
+          <Wallet size={16} className="text-muted-foreground shrink-0" />
+          <p className="text-xs text-muted-foreground font-sans flex-1">
+            Connect a wallet to generate and download reports with your wallet address.
+          </p>
+          <Button size="sm" variant="outline" className="font-sans text-xs shrink-0" onClick={() => setWalletModalOpen(true)}>
+            Connect
+          </Button>
+        </div>
+      )}
 
       <div className="space-y-3">
         {reports.map((report) => (
@@ -113,6 +125,8 @@ const ReportsPanel = () => {
           </Card>
         ))}
       </div>
+
+      <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
     </div>
   );
 };
