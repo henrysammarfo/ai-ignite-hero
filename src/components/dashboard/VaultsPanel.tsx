@@ -27,8 +27,8 @@ const strategyDefaults: Record<string, { lockDays: number; minDeposit: number; a
 };
 
 const defaultVaults: Vault[] = [
-  { id: "v1", name: "Treasury Reserve", tag: "conservative", balance: 150000, apy: 6.8, createdAt: "2026-02-15" },
-  { id: "v2", name: "Yield Pool Alpha", tag: "growth", balance: 100000, apy: 9.4, createdAt: "2026-03-01" },
+  { id: "v1", name: "Treasury Reserve", tag: "conservative", balance: 150000, apy: 6.8, createdAt: "2026-02-15", lockDays: 90, minDeposit: 50000 },
+  { id: "v2", name: "Yield Pool Alpha", tag: "growth", balance: 100000, apy: 9.4, createdAt: "2026-03-01", lockDays: 30, minDeposit: 10000 },
 ];
 
 const tagColors: Record<string, string> = {
