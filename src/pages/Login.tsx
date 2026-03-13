@@ -326,6 +326,7 @@ const Login = () => {
                   className="font-sans text-sm gap-2"
                   type="button"
                   onClick={() => {
+                    login(email || "user@apple.com", "apple");
                     toast.success("Apple sign-in — redirecting...");
                     setTimeout(() => navigate("/dashboard"), 800);
                   }}
