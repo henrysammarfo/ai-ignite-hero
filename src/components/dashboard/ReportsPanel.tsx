@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { FileText, Download, Eye, Loader2, Wallet } from "lucide-react";
+import { FileText, Download, Eye, Loader2, Wallet, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useWallet } from "@/contexts/WalletContext";
-import { generateReport } from "@/lib/generateReport";
+import { generateReport, getReportPreviewData } from "@/lib/generateReport";
 import { toast } from "sonner";
 import WalletConnectModal from "./WalletConnectModal";
 
@@ -16,12 +17,21 @@ const reports: { id: number; name: string; date: string; type: ReportType; statu
   { id: 4, name: "Vault Performance Report", date: "Mar 1, 2026", type: "Performance", status: "Ready" },
 ];
 
+interface PreviewData {
+  title: string;
+  subtitle: string;
+  sections: { heading: string; rows: string[][] }[];
+  footer: string;
+}
+
 const ReportsPanel = () => {
   const { connected, address } = useWallet();
   const [generating, setGenerating] = useState<number | null>(null);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [previewReport, setPreviewReport] = useState<typeof reports[0] | null>(null);
 
-  const handleGenerate = async (report: typeof reports[0]) => {
+  const handleDownload = async (report: typeof reports[0]) => {
     if (!connected || !address) {
       setWalletModalOpen(true);
       return;
@@ -38,6 +48,16 @@ const ReportsPanel = () => {
     }
   };
 
+  const handlePreview = (report: typeof reports[0]) => {
+    if (!connected || !address) {
+      setWalletModalOpen(true);
+      return;
+    }
+    const data = getReportPreviewData({ type: report.type, walletAddress: address, date: report.date });
+    setPreviewData(data);
+    setPreviewReport(report);
+  };
+
   const handleGenerateNew = async () => {
     if (!connected || !address) {
       setWalletModalOpen(true);
@@ -46,8 +66,10 @@ const ReportsPanel = () => {
     setGenerating(-1);
     try {
       await new Promise((r) => setTimeout(r, 400));
-      generateReport({ type: "FINMA", walletAddress: address });
-      toast.success("New FINMA report generated and downloaded");
+      const data = getReportPreviewData({ type: "FINMA", walletAddress: address });
+      setPreviewData(data);
+      setPreviewReport({ id: -1, name: "New FINMA Compliance Report", date: new Date().toISOString().split("T")[0], type: "FINMA", status: "Ready" });
+      toast.success("New FINMA report generated");
     } finally {
       setGenerating(null);
     }
@@ -104,17 +126,16 @@ const ReportsPanel = () => {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => handleGenerate(report)}
-                  disabled={generating === report.id}
-                  title="Preview & Download"
+                  onClick={() => handlePreview(report)}
+                  title="Preview Report"
                 >
-                  {generating === report.id ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />}
+                  <Eye size={14} />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => handleGenerate(report)}
+                  onClick={() => handleDownload(report)}
                   disabled={generating === report.id}
                   title="Download PDF"
                 >
@@ -125,6 +146,50 @@ const ReportsPanel = () => {
           </Card>
         ))}
       </div>
+
+      {/* Report Preview Modal */}
+      <Dialog open={!!previewData} onOpenChange={(open) => { if (!open) { setPreviewData(null); setPreviewReport(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg">{previewData?.title}</DialogTitle>
+            <p className="text-xs text-muted-foreground font-sans">{previewData?.subtitle}</p>
+          </DialogHeader>
+          {previewData && (
+            <div className="space-y-5">
+              {previewData.sections.map((section, i) => (
+                <div key={i}>
+                  <h3 className="text-sm font-sans font-semibold text-foreground mb-2">{section.heading}</h3>
+                  <div className="rounded-lg border border-border divide-y divide-border">
+                    {section.rows.map((row, j) => (
+                      <div key={j} className="flex items-center justify-between px-4 py-2">
+                        <span className="text-xs text-muted-foreground font-sans font-medium">{row[0]}</span>
+                        <span className="text-sm font-sans text-foreground text-right">{row[1]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="rounded-lg bg-muted p-3">
+                <p className="text-[10px] text-muted-foreground font-sans italic">{previewData.footer}</p>
+              </div>
+
+              <Button
+                className="w-full gap-2 font-sans text-sm"
+                onClick={() => {
+                  if (previewReport && address) {
+                    generateReport({ type: previewReport.type, walletAddress: address, date: previewReport.date });
+                    toast.success("PDF downloaded");
+                  }
+                }}
+              >
+                <Download size={14} />
+                Download PDF
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
     </div>
