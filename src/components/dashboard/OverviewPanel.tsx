@@ -65,13 +65,25 @@ const OverviewPanel = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {["KYC Verified", "AML Clear", "Travel Rule", "Source of Funds"].map((label) => (
+            {steps.map((step) => (
               <span
-                key={label}
-                className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-sans font-medium text-green-700 ring-1 ring-inset ring-green-200"
+                key={step.id}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-sans font-medium ring-1 ring-inset ${
+                  step.status === "verified"
+                    ? "bg-primary/10 text-primary ring-primary/20"
+                    : step.status === "verifying"
+                    ? "bg-muted text-muted-foreground ring-border"
+                    : "bg-muted text-muted-foreground ring-border"
+                }`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                {label}
+                {step.status === "verified" ? (
+                  <CheckCircle2 size={10} />
+                ) : step.status === "verifying" ? (
+                  <Loader2 size={10} className="animate-spin" />
+                ) : (
+                  <Circle size={10} />
+                )}
+                {step.title.split("—")[0].trim()}
               </span>
             ))}
           </div>
