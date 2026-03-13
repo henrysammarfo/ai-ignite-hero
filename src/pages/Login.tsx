@@ -41,6 +41,7 @@ const Login = () => {
     toast.loading(`Connecting ${walletName}...`, { id: "wallet" });
     setTimeout(() => {
       setWalletConnecting(false);
+      login(`${walletName.toLowerCase()}@wallet`, "wallet");
       toast.success(`${walletName} connected! Redirecting...`, { id: "wallet" });
       setTimeout(() => navigate("/dashboard"), 600);
     }, 1500);
