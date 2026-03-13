@@ -313,6 +313,7 @@ const Login = () => {
                   className="font-sans text-sm gap-2"
                   type="button"
                   onClick={() => {
+                    login(email || "user@google.com", "google");
                     toast.success("Google sign-in — redirecting...");
                     setTimeout(() => navigate("/dashboard"), 800);
                   }}
