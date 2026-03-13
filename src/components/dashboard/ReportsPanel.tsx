@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FileText, Download, Eye, Loader2, Wallet, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle } from "./ThemedDialog";
 import { useWallet } from "@/contexts/WalletContext";
 import { generateReport, getReportPreviewData } from "@/lib/generateReport";
 import { toast } from "sonner";
