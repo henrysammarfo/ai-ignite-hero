@@ -187,7 +187,7 @@ const TransactionsPanel = () => {
 
       {/* Transaction Detail Modal */}
       <Dialog open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
-        <DialogContent className="max-w-lg">
+        <ThemedDialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">Transaction Details</DialogTitle>
           </DialogHeader>
