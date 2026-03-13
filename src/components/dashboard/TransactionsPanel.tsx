@@ -258,7 +258,7 @@ const TransactionsPanel = () => {
               </Button>
             </div>
           )}
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
     </div>
   );
