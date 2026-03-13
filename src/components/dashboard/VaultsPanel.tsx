@@ -490,7 +490,7 @@ const VaultsPanel = () => {
               <Button onClick={closeWithdraw} className="font-sans text-sm">Done</Button>
             </div>
           )}
-        </DialogContent>
+        </ThemedDialogContent>
       </Dialog>
 
       <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
