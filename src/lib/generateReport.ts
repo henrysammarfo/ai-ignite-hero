@@ -178,6 +178,20 @@ const MOCK_DATA = {
   },
 };
 
+export function getReportPreviewData({ type, walletAddress, date }: ReportOptions) {
+  const now = date || new Date().toISOString().split("T")[0];
+  const data = MOCK_DATA[type];
+  return {
+    title: data.title,
+    subtitle: data.subtitle,
+    sections: data.sections.map(s => ({
+      heading: s.heading,
+      rows: s.rows.map(row => row.map(cell => cell.replace("{{WALLET}}", walletAddress).replace("{{DATE}}", now))),
+    })),
+    footer: data.footer,
+  };
+}
+
 export function generateReport({ type, walletAddress, date }: ReportOptions): void {
   const now = date || new Date().toISOString().split("T")[0];
   const data = MOCK_DATA[type];
