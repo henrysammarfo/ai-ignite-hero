@@ -112,7 +112,7 @@ const OverviewPanel = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-sans font-medium text-foreground">{item.amount}</p>
-                  <span className="text-xs text-green-600 font-sans font-medium">{item.status}</span>
+                  <span className="text-xs text-primary font-sans font-medium">{item.status}</span>
                 </div>
               </div>
             ))}
