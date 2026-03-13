@@ -1,4 +1,4 @@
-import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings } from "lucide-react";
+import { LayoutDashboard, Shield, ArrowDownToLine, TrendingUp, FileText, LogOut, Wallet, Menu, ArrowLeftRight, Settings, Vault } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useWallet } from "@/contexts/WalletContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ interface DashboardSidebarProps {
 
 const navItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "vaults", label: "Vaults", icon: Vault },
   { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
   { id: "compliance", label: "Compliance", icon: Shield },
   { id: "deposit", label: "Deposit", icon: ArrowDownToLine },
