@@ -6,7 +6,7 @@ pub mod errors;
 
 use instructions::*;
 
-declare_id!("CvAULT1111111111111111111111111111111111111");
+declare_id!("2QBypCZ2Aru2aiyvixQ8AWrpuynFnZMVEDUySriWBw9m");
 
 #[program]
 pub mod compliance_vault {
@@ -28,7 +28,38 @@ pub mod compliance_vault {
         instructions::invest::handler(ctx, amount)
     }
 
+    pub fn harvest_yield(ctx: Context<HarvestYield>, amount: u64) -> Result<()> {
+        instructions::harvest_yield::handler(ctx, amount)
+    }
+
     pub fn update_whitelist(ctx: Context<UpdateWhitelist>, strategy: Pubkey, allow: bool) -> Result<()> {
         instructions::whitelist::handler(ctx, strategy, allow)
     }
+}
+
+#[event]
+pub struct DepositEvent {
+    pub depositor: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct WithdrawEvent {
+    pub depositor: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct InvestEvent {
+    pub strategy: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct YieldHarvestEvent {
+    pub amount: u64,
+    pub timestamp: i64,
 }

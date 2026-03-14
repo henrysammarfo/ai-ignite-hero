@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
-use crate::{state::*, errors::VaultError};
+use anchor_spl::token::{Token, TokenAccount};
+
+use crate::{state::*, errors::VaultError, InvestEvent};
 
 #[derive(Accounts)]
 pub struct Invest<'info> {
@@ -16,11 +17,17 @@ pub struct Invest<'info> {
     )]
     pub vault_state: Account<'info, VaultState>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = vault_usdc.owner == vault_state.key(),
+    )]
     pub vault_usdc: Account<'info, TokenAccount>,
 
     /// CHECK: Whitelisted yield strategy program account
     pub yield_strategy: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub strategy_usdc: Account<'info, TokenAccount>,
 
     #[account(
         init_if_needed,
@@ -35,18 +42,38 @@ pub struct Invest<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<Invest>, amount: u64) -> Result<()> {
-    require!(ctx.accounts.vault_usdc.amount >= amount, VaultError::InsufficientBalance);
+    // 1. Transfer from Vault PDA to strategy
+    let seeds = &[
+        b"vault",
+        ctx.accounts.vault_state.authority.as_ref(),
+        &[ctx.accounts.vault_state.bump],
+    ];
+    let signer = &[&seeds[..]];
 
-    // In a real implementation, we would make a CPI call to the yield strategy program (Kamino, etc.)
-    // For the hackathon, we simulate the investment by tracking the position state.
-    
+    let cpi_ctx = CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        anchor_spl::token::Transfer {
+            from: ctx.accounts.vault_usdc.to_account_info(),
+            to: ctx.accounts.strategy_usdc.to_account_info(),
+            authority: ctx.accounts.vault_state.to_account_info(),
+        },
+        signer,
+    );
+    anchor_spl::token::transfer(cpi_ctx, amount)?;
+
+    // 2. Update tracking state
     let yield_position = &mut ctx.accounts.yield_position;
     yield_position.vault = ctx.accounts.vault_state.key();
     yield_position.strategy = ctx.accounts.yield_strategy.key();
     yield_position.amount_deployed = yield_position.amount_deployed.checked_add(amount).unwrap();
     yield_position.deployed_at = Clock::get()?.unix_timestamp;
     yield_position.bump = ctx.bumps.yield_position;
+
+    emit!(InvestEvent {
+        strategy: ctx.accounts.yield_strategy.key(),
+        amount,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     msg!("ComplianceVault: Invested {} USDC into strategy {}", amount, yield_position.strategy);
     Ok(())

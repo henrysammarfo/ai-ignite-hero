@@ -12,6 +12,7 @@
 // teammates just fill in the provider logic.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -271,6 +272,16 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          persistSession: false,
+        },
+      }
+    );
+
     if (req.method !== "POST") {
       return new Response(
         JSON.stringify({ error: "Method not allowed" }),
@@ -295,8 +306,39 @@ serve(async (req) => {
       );
     }
 
+    // Get Auth User ID from Header
+    const authHeader = req.headers.get("Authorization")!;
+    const { data: { user }, error: userError } = await createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    ).auth.getUser();
+
+    if (userError || !user) {
+      console.error("[compliance] Auth error:", userError);
+    }
+
     console.log(`[compliance] Verifying ${body.stepId} for wallet ${body.walletAddress}`);
     const result = await verifier(body.walletAddress);
+
+    // Persist to DB if user is authenticated
+    if (user) {
+      const { error: dbError } = await supabaseClient
+        .from("compliance_records")
+        .insert({
+          owner_id: user.id,
+          step_id: body.stepId,
+          status: result.status,
+          verification_hash: result.verification.hash,
+          risk_score: result.verification.riskScore,
+          verified_at: result.status === "verified" ? new Date().toISOString() : null,
+          expires_at: result.verification.expiresAt,
+          error_message: result.verification.errorMessage,
+        });
+
+      if (dbError) console.error("[compliance] DB Error:", dbError);
+    }
+
     console.log(`[compliance] ${body.stepId} result: ${result.status}`);
 
     return new Response(

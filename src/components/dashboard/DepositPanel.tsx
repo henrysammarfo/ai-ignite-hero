@@ -11,25 +11,74 @@ import { useCompliance } from "@/contexts/ComplianceContext";
 import WalletConnectModal from "./WalletConnectModal";
 import { toast } from "sonner";
 import { PROGRAM_ID, getVaultPDA, getDepositorPDA } from "@/lib/solana";
-import { PublicKey } from "@solana/web3.js";
+import { useEffect } from "react";
+import { getProgram } from "@/lib/solana";
 
-const vaultOptions = [
-  { id: "v1", name: "Treasury Reserve", apy: 6.8, minDeposit: 10000, lockDays: 30 },
-  { id: "v2", name: "Yield Pool Alpha", apy: 9.4, minDeposit: 25000, lockDays: 60 },
-  { id: "v3", name: "Fortis USDC Vault", apy: 8.2, minDeposit: 10000, lockDays: 30 },
-];
+interface VaultOption {
+  id: string;
+  name: string;
+  apy: number;
+  minDeposit: number;
+  lockDays: number;
+}
 
 const DepositPanel = () => {
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
   const { isFullyCompliant, steps } = useCompliance();
+
+  const [vaults, setVaults] = useState<VaultOption[]>([]);
+  const [loadingVaults, setLoadingVaults] = useState(true);
+
   const [amount, setAmount] = useState("");
-  const [selectedVault, setSelectedVault] = useState(vaultOptions[2].id);
+  const [selectedVault, setSelectedVault] = useState<string>("");
   const [step, setStep] = useState<"form" | "review" | "done">("form");
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+
   const locked = !isFullyCompliant;
   const needsWallet = !connected;
-  const vault = vaultOptions.find(v => v.id === selectedVault)!;
+
+  const vault = vaults.find(v => v.id === selectedVault);
+
+  const provider = connected && wallet
+    ? new anchor.AnchorProvider(connection, wallet.adapter as any, { preflightCommitment: "processed" })
+    : null;
+
+  useEffect(() => {
+    const fetchVaults = async () => {
+      if (!provider) {
+        setVaults([]);
+        setLoadingVaults(false);
+        return;
+      }
+
+      try {
+        setLoadingVaults(true);
+        const program = getProgram(provider);
+        const onChainVaults = await program.account.vaultState.all();
+
+        const mappedVaults: VaultOption[] = onChainVaults.map((v: any, index: number) => {
+          return {
+            id: v.publicKey.toString(),
+            name: `Vault #${v.publicKey.toString().slice(0, 4)}`,
+            apy: parseFloat((5 + Math.random() * 5).toFixed(1)), // Mock APY for UI sake, real APY requires offchain worker or strategy state
+            minDeposit: index % 2 === 0 ? 1000 : 5000, // Derived mock settings based on real PDAs
+            lockDays: index % 2 === 0 ? 30 : 90,
+          };
+        });
+
+        setVaults(mappedVaults);
+        if (mappedVaults.length > 0) setSelectedVault(mappedVaults[0].id);
+      } catch (err) {
+        console.error("Failed to load generic vaults:", err);
+      } finally {
+        setLoadingVaults(false);
+      }
+    };
+
+    fetchVaults();
+  }, [connected, publicKey]);
+
 
   const handleContinue = () => {
     if (!amount || parseFloat(amount) < vault.minDeposit) {
@@ -53,17 +102,25 @@ const DepositPanel = () => {
       }
 
       // 2. Execute Anchor Transaction
-      // const provider = new anchor.AnchorProvider(connection, solanaWallet as any, {});
-      // const program = new anchor.Program(IDL, PROGRAM_ID, provider);
-      // const vaultPDA = getVaultPDA(ADMIN_PUBKEY);
-      // const depositorPDA = getDepositorPDA(vaultPDA, new PublicKey(publicKey));
+      if (!vault) return;
+      const amountBN = new anchor.BN(parseFloat(amount) * 1e6);
+      const sofHash = Array.from(Buffer.alloc(32)); // Placeholder since we lack full kyc hex hash matching
 
-      // const sofHash = Array.from(Buffer.from(kycStep.verification.hash || "", 'hex'));
+      const program = getProgram(provider!);
+      const userKey = new PublicKey(publicKey);
+      const vaultKey = new PublicKey(vault.id);
+      const depositorPDA = getDepositorPDA(vaultKey, userKey);
 
-      // await program.methods.deposit(
-      //   new anchor.BN(parseFloat(amount) * 1e6),
-      //   sofHash
-      // ).accounts({...}).rpc();
+      await program.methods
+        .deposit(amountBN, sofHash)
+        .accounts({
+          depositor: userKey,
+          vaultState: vaultKey,
+          depositorAccount: depositorPDA,
+          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+          systemProgram: anchor.web3.SystemProgram.programId,
+        } as any)
+        .rpc();
 
       setTimeout(() => {
         setStep("done");
@@ -95,7 +152,7 @@ const DepositPanel = () => {
           return (
             <div key={label} className="flex items-center gap-2 flex-1">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-sans font-bold shrink-0 ${step === "done" ? "bg-primary text-primary-foreground" :
-                  i <= (step === "review" ? 2 : 1) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                i <= (step === "review" ? 2 : 1) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 }`}>
                 {step === "done" ? "✓" : i + 1}
               </div>
@@ -114,12 +171,12 @@ const DepositPanel = () => {
               <CardTitle className="text-base font-sans font-semibold">Select Vault</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Select value={selectedVault} onValueChange={setSelectedVault}>
+              <Select value={selectedVault} onValueChange={setSelectedVault} disabled={loadingVaults || vaults.length === 0}>
                 <SelectTrigger className="font-sans">
-                  <SelectValue />
+                  <SelectValue placeholder={loadingVaults ? "Loading Vaults..." : "Select a Devnet Vault"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {vaultOptions.map(v => (
+                  {vaults.map(v => (
                     <SelectItem key={v.id} value={v.id} className="font-sans">
                       <div className="flex items-center gap-2">
                         <span>{v.name}</span>
@@ -130,22 +187,24 @@ const DepositPanel = () => {
                 </SelectContent>
               </Select>
 
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: "APY", value: `${vault.apy}%`, icon: TrendingUp, highlight: true },
-                  { label: "Min Deposit", value: `$${vault.minDeposit.toLocaleString()}`, icon: ArrowDownToLine },
-                  { label: "Lock Period", value: `${vault.lockDays} days`, icon: Lock },
-                  { label: "Compliance", value: "KYC + AML", icon: Shield },
-                ].map(item => (
-                  <div key={item.label} className="rounded-lg bg-muted p-3 space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <item.icon size={12} className="text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">{item.label}</span>
+              {vault && (
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "APY", value: `${vault.apy}%`, icon: TrendingUp, highlight: true },
+                    { label: "Min Deposit", value: `$${vault.minDeposit.toLocaleString()}`, icon: ArrowDownToLine },
+                    { label: "Lock Period", value: `${vault.lockDays} days`, icon: Lock },
+                    { label: "Compliance", value: "KYC + AML", icon: Shield },
+                  ].map(item => (
+                    <div key={item.label} className="rounded-lg bg-muted p-3 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <item.icon size={12} className="text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">{item.label}</span>
+                      </div>
+                      <p className={`text-sm font-sans font-bold ${item.highlight ? "text-primary" : "text-foreground"}`}>{item.value}</p>
                     </div>
-                    <p className={`text-sm font-sans font-bold ${item.highlight ? "text-primary" : "text-foreground"}`}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -163,12 +222,12 @@ const DepositPanel = () => {
                 <div className="relative">
                   <Input
                     type="number"
-                    placeholder={vault.minDeposit.toLocaleString()}
+                    placeholder={vault ? vault.minDeposit.toLocaleString() : "..."}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="font-sans text-lg pr-16"
-                    min={vault.minDeposit}
-                    disabled={needsWallet}
+                    min={vault ? vault.minDeposit : 0}
+                    disabled={needsWallet || !vault}
                   />
                   <button
                     onClick={() => setAmount("250000")}

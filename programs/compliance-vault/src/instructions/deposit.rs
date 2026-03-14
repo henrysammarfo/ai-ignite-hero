@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use solana_gateway::Gateway;
-use crate::{state::*, errors::VaultError};
+use crate::{state::*, errors::VaultError, DepositEvent};
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -77,6 +77,12 @@ pub fn handler(ctx: Context<Deposit>, amount: u64, source_of_funds_hash: [u8; 32
 
     // 4. Update vault AUM
     ctx.accounts.vault_state.total_aum = ctx.accounts.vault_state.total_aum.checked_add(amount).unwrap();
+
+    emit!(DepositEvent {
+        depositor: ctx.accounts.depositor.key(),
+        amount,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     msg!("ComplianceVault: Deposited {} USDC. New Balance: {}", amount, depositor_acc.balance_usdc);
     Ok(())

@@ -1,39 +1,21 @@
-import { useState, useMemo } from "react";
-import { TrendingUp, Activity } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { TrendingUp, Activity, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { PythHttpClient, getPythProgramKeyForCluster } from "@pythnetwork/client";
+import { toast } from "sonner";
 
 const allApyData = [
-  { week: "Mar 15", apy: 6.8 },
-  { week: "Apr 1", apy: 7.0 },
-  { week: "Apr 15", apy: 6.9 },
-  { week: "May 1", apy: 7.2 },
-  { week: "May 15", apy: 7.1 },
-  { week: "Jun 1", apy: 7.4 },
-  { week: "Jun 15", apy: 7.0 },
-  { week: "Jul 1", apy: 7.3 },
-  { week: "Jul 15", apy: 7.6 },
-  { week: "Aug 1", apy: 7.2 },
-  { week: "Aug 15", apy: 7.5 },
-  { week: "Sep 1", apy: 7.8 },
-  { week: "Sep 15", apy: 7.3 },
-  { week: "Oct 1", apy: 7.1 },
-  { week: "Oct 15", apy: 7.4 },
-  { week: "Nov 1", apy: 7.6 },
-  { week: "Nov 15", apy: 7.2 },
-  { week: "Dec 1", apy: 7.0 },
-  { week: "Dec 15", apy: 7.3 },
-  { week: "Jan 6", apy: 7.4 },
-  { week: "Jan 13", apy: 7.6 },
-  { week: "Jan 20", apy: 7.8 },
-  { week: "Jan 27", apy: 7.5 },
-  { week: "Feb 3", apy: 7.9 },
-  { week: "Feb 10", apy: 8.3 },
-  { week: "Feb 17", apy: 7.7 },
-  { week: "Feb 24", apy: 8.1 },
-  { week: "Mar 3", apy: 7.9 },
-  { week: "Mar 10", apy: 8.2 },
+  { week: "Feb 1", apy: 7.42 },
+  { week: "Feb 8", apy: 7.58 },
+  { week: "Feb 15", apy: 7.91 },
+  { week: "Feb 22", apy: 8.12 },
+  { week: "Mar 1", apy: 8.24 },
+  { week: "Mar 8", apy: 8.39 },
+  { week: "Mar 14", apy: 8.42 },
 ];
 
 const timeRanges = [
@@ -53,23 +35,55 @@ const chartConfig = {
 };
 
 const yieldHistory = [
-  { date: "Mar 10, 2026", amount: "$312.40", apy: "8.2%", source: "Marinade SOL Staking" },
-  { date: "Mar 3, 2026", amount: "$298.15", apy: "7.9%", source: "Marinade SOL Staking" },
-  { date: "Feb 24, 2026", amount: "$305.60", apy: "8.1%", source: "Marinade SOL Staking" },
-  { date: "Feb 17, 2026", amount: "$289.92", apy: "7.7%", source: "Marinade SOL Staking" },
-  { date: "Feb 10, 2026", amount: "$310.20", apy: "8.3%", source: "Marinade SOL Staking" },
+  { date: "Oct 12, 2023", amount: "+$4,250.00", apy: "7.84%", source: "Kamino Strategy" },
+  { date: "Nov 12, 2023", amount: "+$5,120.00", apy: "8.12%", source: "Kamino Strategy" },
+  { date: "Dec 12, 2023", amount: "+$6,480.00", apy: "8.24%", source: "Drift Protocol" },
+  { date: "Jan 12, 2024", amount: "+$7,910.00", apy: "8.39%", source: "Multi-Strategy" },
+  { date: "Feb 12, 2024", amount: "+$8,560.00", apy: "8.42%", source: "Multi-Strategy" },
 ];
 
 const YieldPanel = () => {
   const [range, setRange] = useState<TimeRange>("3M");
+  const [usdcPrice, setUsdcPrice] = useState<number | null>(null);
+  const [loadingOracle, setLoadingOracle] = useState(true);
+
+  // Pyth USDC/USD Devnet Feed
+  const USDC_FEED = "5SSkXsEKQepHHAewytB3SusrZ65ndq6uQQ8bbT396mAS";
+
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        const connection = new Connection("https://api.devnet.solana.com");
+        const pythClient = new PythHttpClient(connection, getPythProgramKeyForCluster("devnet"));
+        const data = await pythClient.getData();
+        const price = data.productPrice.get(USDC_FEED);
+
+        if (price && price.price) {
+          setUsdcPrice(price.price);
+        }
+      } catch (err) {
+        console.error("Pyth Oracle error:", err);
+      } finally {
+        setLoadingOracle(false);
+      }
+    };
+
+    fetchPrice();
+    const interval = setInterval(fetchPrice, 30000); // Update every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   const chartData = useMemo(() => {
-    const points = timeRanges.find((r) => r.label === range)!.points;
-    return allApyData.slice(-points);
-  }, [range]);
+    return allApyData;
+  }, []);
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
       <div>
         <h1 className="text-2xl font-serif font-bold text-foreground">Yield</h1>
         <p className="text-sm text-muted-foreground font-sans mt-1">Track your vault earnings and APY performance</p>
@@ -78,13 +92,31 @@ const YieldPanel = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Total Earned", value: "$4,109.58", sub: "Lifetime", highlight: false },
-          { label: "Current APY", value: "8.2%", sub: "Pyth oracle feed", highlight: true },
-          { label: "Next Payout", value: "~$315", sub: "in 2d 14h", highlight: false },
+          {
+            label: "Total Earned",
+            value: loadingOracle ? "..." : "$0.00",
+            sub: "Lifetime",
+            highlight: false
+          },
+          {
+            label: "Oracle Price (USDC)",
+            value: loadingOracle ? "..." : `$${usdcPrice?.toFixed(4) || "1.0000"}`,
+            sub: loadingOracle ? "Syncing..." : "Live Pyth Feed",
+            highlight: true
+          },
+          {
+            label: "Estimated APY",
+            value: "8.42%",
+            sub: "Avg. Strategy Yield",
+            highlight: false
+          },
         ].map((card) => (
           <Card key={card.label} className="shadow-sm">
             <CardContent className="p-5">
-              <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-2">{card.label}</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider">{card.label}</p>
+                {card.highlight && !loadingOracle && <RefreshCw size={12} className="text-primary animate-spin-slow" />}
+              </div>
               <p className={`text-2xl font-bold font-sans ${card.highlight ? "text-primary" : "text-foreground"}`}>{card.value}</p>
               <p className="text-xs text-muted-foreground font-sans mt-1">{card.sub}</p>
             </CardContent>
@@ -104,11 +136,10 @@ const YieldPanel = () => {
               <button
                 key={r.label}
                 onClick={() => setRange(r.label)}
-                className={`px-2.5 py-1 text-xs font-sans font-medium rounded-md transition-colors ${
-                  range === r.label
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
+                className={`px-2.5 py-1 text-xs font-sans font-medium rounded-md transition-colors ${range === r.label
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+                  }`}
               >
                 {r.label}
               </button>
@@ -150,7 +181,11 @@ const YieldPanel = () => {
               <span>APY</span>
               <span>Source</span>
             </div>
-            {yieldHistory.map((row, i) => (
+            {yieldHistory.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground text-sm font-sans">
+                Yield data will populate once the Devnet strategy contract initializes payouts.
+              </div>
+            ) : yieldHistory.map((row, i) => (
               <div key={i} className="grid grid-cols-4 text-sm font-sans py-3 border-b border-border last:border-0 items-center">
                 <span className="text-muted-foreground">{row.date}</span>
                 <span className="text-foreground font-medium">{row.amount}</span>
@@ -161,7 +196,7 @@ const YieldPanel = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 };
 

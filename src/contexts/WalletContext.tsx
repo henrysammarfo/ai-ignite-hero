@@ -12,6 +12,7 @@ interface WalletContextType {
   connected: boolean;
   address: string | null;
   publicKey: string | null;
+  wallet: any;
   connect: () => void;
   disconnect: () => void;
 }
@@ -20,6 +21,7 @@ const WalletContextCustom = createContext<WalletContextType>({
   connected: false,
   address: null,
   publicKey: null,
+  wallet: null,
   connect: () => { },
   disconnect: () => { },
 });
@@ -30,6 +32,7 @@ export const useWallet = () => {
     connected: solanaWallet.connected,
     address: solanaWallet.publicKey?.toBase58() || null,
     publicKey: solanaWallet.publicKey?.toBase58() || null,
+    wallet: solanaWallet.wallet,
     connect: solanaWallet.connect,
     disconnect: solanaWallet.disconnect,
   };

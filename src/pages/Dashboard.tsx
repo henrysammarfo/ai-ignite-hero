@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { WalletProvider } from "@/contexts/WalletContext";
+import { useAuth } from "@/contexts/AuthContext";
+
+import { AppWalletProvider, useWallet } from "@/contexts/WalletContext";
 import { DashboardThemeProvider, useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import { ComplianceProvider } from "@/contexts/ComplianceContext";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -43,13 +45,13 @@ const DashboardContent = () => {
 };
 
 const Dashboard = () => (
-  <WalletProvider>
+  <AppWalletProvider>
     <DashboardThemeProvider>
       <ComplianceProvider>
         <DashboardContent />
       </ComplianceProvider>
     </DashboardThemeProvider>
-  </WalletProvider>
+  </AppWalletProvider>
 );
 
 export default Dashboard;

@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { toast } from "sonner";
 
 export type ComplianceStatus = "pending" | "in_progress" | "verified" | "failed" | "expired";
 
@@ -102,10 +105,10 @@ const ComplianceContext = createContext<ComplianceContextType>({
   isFullyCompliant: false,
   completedCount: 0,
   totalCount: 4,
-  updateStepStatus: () => {},
-  initiateVerification: () => {},
-  resetStep: () => {},
-  resetAll: () => {},
+  updateStepStatus: () => { },
+  initiateVerification: () => { },
+  resetStep: () => { },
+  resetAll: () => { },
 });
 
 export const useCompliance = () => useContext(ComplianceContext);
@@ -115,7 +118,7 @@ export const ComplianceProvider = ({ children }: { children: ReactNode }) => {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch { }
     return defaultSteps;
   });
 
@@ -133,11 +136,11 @@ export const ComplianceProvider = ({ children }: { children: ReactNode }) => {
       const updated = prev.map(s =>
         s.id === id
           ? {
-              ...s,
-              status,
-              statusLabel: STATUS_LABELS[status],
-              verification: { ...s.verification, ...verification },
-            }
+            ...s,
+            status,
+            statusLabel: STATUS_LABELS[status],
+            verification: { ...s.verification, ...verification },
+          }
           : s
       );
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -145,45 +148,46 @@ export const ComplianceProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const { publicKey } = useWallet();
+
   /**
    * Initiates a verification flow for a step.
-   * 
-   * INTEGRATION POINT: Replace the body of this function with a call
-   * to your edge function / API endpoint. Example:
-   * 
-   * ```ts
-   * const res = await fetch('/api/compliance/verify', {
-   *   method: 'POST',
-   *   body: JSON.stringify({ stepId: id, walletAddress }),
-   * });
-   * const data = await res.json();
-   * updateStepStatus(id, data.status, data.verification);
-   * ```
-   * 
-   * For now, it sets status to "in_progress" so the UI reflects the loading state.
-   * The actual verification result should come back via `updateStepStatus`.
+   * Calls the 'compliance-verify' Supabase edge function.
    */
-  const initiateVerification = useCallback((id: string) => {
+  const initiateVerification = useCallback(async (id: string) => {
+    if (!publicKey) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
     updateStepStatus(id, "in_progress");
 
-    // TODO: Replace with real API call
-    // This is a placeholder that auto-completes after 2s for demo purposes.
-    // Remove this entire setTimeout block when wiring to real APIs.
-    setTimeout(() => {
-      const now = new Date();
-      const expiry = new Date(now);
-      expiry.setMonth(expiry.getMonth() + 3);
+    try {
+      const { data, error } = await supabase.functions.invoke('compliance-verify', {
+        body: {
+          stepId: id,
+          walletAddress: publicKey.toBase58()
+        }
+      });
 
-      const mockVerification: Partial<ComplianceVerification> = {
-        hash: `0x${Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
-        timestamp: now.toISOString(),
-        expiresAt: expiry.toISOString(),
-        riskScore: id === "aml" ? "Low" : null,
-        errorMessage: null,
-      };
-      updateStepStatus(id, "verified", mockVerification);
-    }, 2000);
-  }, [updateStepStatus]);
+      if (error) throw error;
+
+      if (data) {
+        updateStepStatus(id, data.status, data.verification);
+        if (data.status === "verified") {
+          toast.success(`${id.toUpperCase()} Verification Successful`);
+        } else {
+          toast.error(`${id.toUpperCase()} Verification Failed: ${data.verification?.errorMessage || "Unknown error"}`);
+        }
+      }
+    } catch (err) {
+      console.error("[compliance] Verification error:", err);
+      updateStepStatus(id, "failed", {
+        errorMessage: err instanceof Error ? err.message : "Verification service unavailable"
+      });
+      toast.error(`Verification failed: ${err instanceof Error ? err.message : "Service error"}`);
+    }
+  }, [publicKey, updateStepStatus]);
 
   const resetStep = useCallback((id: string) => {
     updateStepStatus(id, "pending", { ...emptyVerification });

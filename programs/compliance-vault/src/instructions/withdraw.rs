@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
-use crate::{state::*, errors::VaultError};
+use crate::{state::*, errors::VaultError, WithdrawEvent};
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
@@ -65,6 +65,12 @@ pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     depositor_account.total_withdrawn = depositor_account.total_withdrawn.checked_add(amount).unwrap();
     
     ctx.accounts.vault_state.total_aum = ctx.accounts.vault_state.total_aum.checked_sub(amount).unwrap();
+
+    emit!(WithdrawEvent {
+        depositor: ctx.accounts.depositor.key(),
+        amount,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     msg!("ComplianceVault: Withdrawn {} USDC. Remaining: {}", amount, depositor_account.balance_usdc);
     Ok(())

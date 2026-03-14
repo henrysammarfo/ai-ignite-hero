@@ -1,16 +1,17 @@
-import { useState, useMemo } from "react";
-import { ArrowUpRight, ArrowDownLeft, Search, Filter, ExternalLink, Copy, X } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { ArrowUpRight, ArrowDownLeft, Search, Filter, ExternalLink, Copy, X, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle } from "./ThemedDialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface Transaction {
   id: string;
   type: "deposit" | "withdrawal" | "yield";
-  amount: string;
-  rawAmount: number;
+  amount: number;
   token: string;
   date: string;
   hash: string;
@@ -22,17 +23,6 @@ interface Transaction {
   block: number;
   confirmations: number;
 }
-
-const transactions: Transaction[] = [
-  { id: "tx-001", type: "deposit", amount: "+$50,000.00", rawAmount: 50000, token: "USDC", date: "Mar 10, 2026 · 14:23", hash: "5xKR...m9Fp", fullHash: "5xKRj8mNqW2vB4pLzD7hT9cFx3sYaE6uR1wK0gHnm9Fp", status: "Confirmed", from: "8fT2...xQ4p", to: "FtsVault...9pRm", fee: "0.00025 SOL", block: 284719523, confirmations: 847 },
-  { id: "tx-002", type: "yield", amount: "+$312.40", rawAmount: 312.40, token: "USDC", date: "Mar 10, 2026 · 00:01", hash: "8bNx...q2Wp", fullHash: "8bNxp3LkR7mW5vJ2cD9tF6yH4sA1gQ8eZ0uX3nBq2Wp", status: "Confirmed", from: "Marinade...Pool", to: "8fT2...xQ4p", fee: "0.00005 SOL", block: 284712018, confirmations: 1293 },
-  { id: "tx-003", type: "deposit", amount: "+$100,000.00", rawAmount: 100000, token: "USDC", date: "Mar 5, 2026 · 09:15", hash: "2mTz...k7Lp", fullHash: "2mTzn4PjS6kW8vL1cD3tF9yH7sA2gQ5eZ0uX6nBk7Lp", status: "Confirmed", from: "8fT2...xQ4p", to: "FtsVault...9pRm", fee: "0.00025 SOL", block: 284523891, confirmations: 5214 },
-  { id: "tx-004", type: "yield", amount: "+$298.15", rawAmount: 298.15, token: "USDC", date: "Mar 3, 2026 · 00:01", hash: "9pRw...d4Hn", fullHash: "9pRwk2MjT5nW7vL3cD1tF8yH6sA4gQ9eZ0uX2nBd4Hn", status: "Confirmed", from: "Marinade...Pool", to: "8fT2...xQ4p", fee: "0.00005 SOL", block: 284448210, confirmations: 6891 },
-  { id: "tx-005", type: "deposit", amount: "+$100,000.00", rawAmount: 100000, token: "USDC", date: "Feb 28, 2026 · 11:42", hash: "3cVx...j8Qp", fullHash: "3cVxm5RjU7nW9vL2cD4tF1yH3sA8gQ6eZ0uX5nBj8Qp", status: "Confirmed", from: "8fT2...xQ4p", to: "FtsVault...9pRm", fee: "0.00025 SOL", block: 284291445, confirmations: 9102 },
-  { id: "tx-006", type: "yield", amount: "+$305.60", rawAmount: 305.60, token: "USDC", date: "Feb 24, 2026 · 00:01", hash: "7kSm...f1Bp", fullHash: "7kSmn8QjV2nW4vL6cD9tF3yH1sA5gQ7eZ0uX8nBf1Bp", status: "Confirmed", from: "Marinade...Pool", to: "8fT2...xQ4p", fee: "0.00005 SOL", block: 284102788, confirmations: 12003 },
-  { id: "tx-007", type: "withdrawal", amount: "-$25,000.00", rawAmount: 25000, token: "USDC", date: "Feb 20, 2026 · 16:30", hash: "4gNx...w5Tp", fullHash: "4gNxp6SjW1nW3vL8cD2tF7yH5sA9gQ4eZ0uX1nBw5Tp", status: "Confirmed", from: "FtsVault...9pRm", to: "8fT2...xQ4p", fee: "0.00025 SOL", block: 283948120, confirmations: 14500 },
-  { id: "tx-008", type: "yield", amount: "+$289.92", rawAmount: 289.92, token: "USDC", date: "Feb 17, 2026 · 00:01", hash: "6dRq...n3Yp", fullHash: "6dRqm9TjX4nW6vL5cD7tF2yH8sA3gQ1eZ0uX9nBn3Yp", status: "Confirmed", from: "Marinade...Pool", to: "8fT2...xQ4p", fee: "0.00005 SOL", block: 283810445, confirmations: 16200 },
-];
 
 const typeConfig = {
   deposit: { label: "Deposit", icon: ArrowDownLeft, color: "text-green-600" },
@@ -47,6 +37,58 @@ const TransactionsPanel = () => {
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [showFilter, setShowFilter] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const mapped: Transaction[] = data.map(tx => ({
+          id: tx.id,
+          type: tx.type as any,
+          amount: Number(tx.amount),
+          token: tx.token || "USDC",
+          date: format(new Date(tx.created_at), "MMM d, yyyy HH:mm"),
+          hash: tx.tx_signature ? `${tx.tx_signature.slice(0, 4)}...${tx.tx_signature.slice(-4)}` : "Pending",
+          fullHash: tx.tx_signature || "",
+          status: tx.status || "Pending",
+          from: tx.from_address || "N/A",
+          to: tx.to_address || "N/A",
+          fee: tx.network_fee ? `${tx.network_fee} SOL` : "0.0001 SOL",
+          block: Number(tx.block_number || 0),
+          confirmations: tx.confirmations || 0
+        }));
+        setTransactions(mapped);
+      }
+    } catch (err: any) {
+      toast.error("Failed to load transactions: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+
+    // Subscribe to new transactions
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: 'INSERT', table: 'transactions' }, () => {
+        fetchTransactions();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     return transactions.filter((tx) => {
@@ -107,11 +149,10 @@ const TransactionsPanel = () => {
             <button
               key={type}
               onClick={() => setFilterType(type)}
-              className={`px-3 py-1.5 rounded-full text-xs font-sans font-medium capitalize transition-all ${
-                filterType === type
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-sans font-medium capitalize transition-all ${filterType === type
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
             >
               {type === "all" ? "All Types" : type}
             </button>
@@ -141,7 +182,12 @@ const TransactionsPanel = () => {
               <span>Tx Hash</span>
               <span className="text-right">Status</span>
             </div>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p className="text-sm font-sans">Syncing with blockchain...</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-sm text-muted-foreground font-sans">No transactions found</p>
                 <Button
@@ -167,7 +213,7 @@ const TransactionsPanel = () => {
                       <span className="text-foreground font-medium">{config.label}</span>
                     </div>
                     <span className={`font-medium ${tx.type === "withdrawal" ? "text-red-500" : "text-foreground"}`}>
-                      {tx.amount}
+                      {tx.type === "withdrawal" ? "-" : "+"}${tx.amount.toLocaleString()}
                     </span>
                     <span className="text-muted-foreground">{tx.token}</span>
                     <span className="text-muted-foreground text-xs">{tx.date}</span>
@@ -195,10 +241,9 @@ const TransactionsPanel = () => {
             <div className="space-y-4">
               {/* Type badge */}
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  selectedTx.type === "deposit" ? "bg-green-500/10" :
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selectedTx.type === "deposit" ? "bg-green-500/10" :
                   selectedTx.type === "withdrawal" ? "bg-red-500/10" : "bg-primary/10"
-                }`}>
+                  }`}>
                   {selectedTx.type === "withdrawal" ?
                     <ArrowUpRight size={20} className="text-red-500" /> :
                     <ArrowDownLeft size={20} className={selectedTx.type === "deposit" ? "text-green-600" : "text-primary"} />
@@ -207,7 +252,7 @@ const TransactionsPanel = () => {
                 <div>
                   <p className="text-sm font-sans font-semibold text-foreground capitalize">{selectedTx.type}</p>
                   <p className={`text-lg font-bold font-sans ${selectedTx.type === "withdrawal" ? "text-red-500" : "text-foreground"}`}>
-                    {selectedTx.amount}
+                    {selectedTx.type === "withdrawal" ? "-" : "+"}${selectedTx.amount.toLocaleString()}
                   </p>
                 </div>
               </div>

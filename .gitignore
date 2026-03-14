@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Solana / Anchor
+target/
+.anchor/
+.guest/
+dump.tar.gz
+test-ledger/
+
+# Rust
+Cargo.lock
+debug/
+release/

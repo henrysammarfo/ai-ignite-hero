@@ -1,17 +1,16 @@
-import { TrendingUp, Shield, DollarSign, Clock, Activity, CheckCircle2, Circle, Loader2, AlertTriangle, Wallet } from "lucide-react";
+import { useState, useEffect } from "react";
+import { TrendingUp, Shield, DollarSign, Clock, Activity, CheckCircle2, Circle, Loader2, AlertTriangle, Wallet, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance, ComplianceStatus } from "@/contexts/ComplianceContext";
 import WalletConnectModal from "./WalletConnectModal";
-import { useState } from "react";
+import { getProgram } from "@/lib/solana";
+import { useConnection } from "@solana/wallet-adapter-react";
+import * as anchor from "@coral-xyz/anchor";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
-const stats = [
-  { label: "Total Deposited", value: "$250,000.00", change: "+2.4%", icon: DollarSign },
-  { label: "Current APY", value: "8.2%", change: "+0.3%", icon: TrendingUp },
-  { label: "Yield Earned", value: "$4,109.58", change: "+$312.40", icon: TrendingUp },
-  { label: "Next Payout", value: "2d 14h", change: "Mar 14", icon: Clock },
-];
 
 const statusIcons: Record<ComplianceStatus, typeof CheckCircle2> = {
   pending: Circle,
@@ -22,9 +21,76 @@ const statusIcons: Record<ComplianceStatus, typeof CheckCircle2> = {
 };
 
 const OverviewPanel = () => {
-  const { connected } = useWallet();
+  const { connected, wallet } = useWallet();
+  const { connection } = useConnection();
   const { steps, completedCount, totalCount } = useCompliance();
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+
+  const [totalDeposited, setTotalDeposited] = useState<number>(0);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
+
+  const provider = connected && wallet
+    ? new anchor.AnchorProvider(connection, wallet.adapter as any, { preflightCommitment: "processed" })
+    : null;
+
+  useEffect(() => {
+    const fetchAggregates = async () => {
+      if (!provider) {
+        setTotalDeposited(0);
+        setLoadingStats(false);
+        return;
+      }
+      try {
+        setLoadingStats(true);
+        const program = getProgram(provider);
+        const vaults = await program.account.vaultState.all();
+
+        const total = vaults.reduce((sum, v) => sum + (v.account.totalAum.toNumber() / 1e6), 0);
+        setTotalDeposited(total);
+      } catch (err) {
+        console.error("Failed to fetch vaults for overview:", err);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    const fetchRecentTransactions = async () => {
+      setLoadingTransactions(true);
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (!error && data) {
+        setRecentTransactions(data);
+      }
+      setLoadingTransactions(false);
+    };
+
+    fetchAggregates();
+    fetchRecentTransactions();
+
+    const channel = supabase
+      .channel('overview-tx-sync')
+      .on('postgres_changes', { event: 'INSERT', table: 'transactions' }, () => {
+        fetchRecentTransactions();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [connected, wallet]);
+
+  const dynamicStats = [
+    { label: "Total Instituional TVL", value: loadingStats ? "..." : `$${totalDeposited.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, change: "Live", icon: DollarSign },
+    { label: "Current APY", value: "8.2%", change: "Avg Weighted", icon: TrendingUp },
+    { label: "Yield Earned", value: "$0.00", change: "Awaiting Distribution", icon: TrendingUp },
+    { label: "Next Payout", value: "2d 14h", change: "Next Epoch", icon: Clock },
+  ];
 
   if (!connected) {
     return (
@@ -56,7 +122,7 @@ const OverviewPanel = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {stats.map((stat) => (
+        {dynamicStats.map((stat) => (
           <Card key={stat.label} className="shadow-sm">
             <CardContent className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
@@ -88,15 +154,14 @@ const OverviewPanel = () => {
               return (
                 <span
                   key={step.id}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-sans font-medium ring-1 ring-inset ${
-                    step.status === "verified"
-                      ? "bg-primary/10 text-primary ring-primary/20"
-                      : step.status === "in_progress"
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-sans font-medium ring-1 ring-inset ${step.status === "verified"
+                    ? "bg-primary/10 text-primary ring-primary/20"
+                    : step.status === "in_progress"
                       ? "bg-muted text-muted-foreground ring-border"
                       : step.status === "failed"
-                      ? "bg-destructive/10 text-destructive ring-destructive/20"
-                      : "bg-muted text-muted-foreground ring-border"
-                  }`}
+                        ? "bg-destructive/10 text-destructive ring-destructive/20"
+                        : "bg-muted text-muted-foreground ring-border"
+                    }`}
                 >
                   <Icon size={10} className={step.status === "in_progress" ? "animate-spin" : ""} />
                   {step.title.split("—")[0].trim()}
@@ -115,25 +180,40 @@ const OverviewPanel = () => {
             Recent Activity
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-0">
-            {[
-              { action: "Deposit", amount: "+$50,000 USDC", time: "2 hours ago", status: "Completed" },
-              { action: "Yield Payout", amount: "+$312.40 USDC", time: "1 day ago", status: "Completed" },
-              { action: "KYC Renewal", amount: "—", time: "3 days ago", status: "Verified" },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                <div>
-                  <p className="text-sm font-sans font-medium text-foreground">{item.action}</p>
-                  <p className="text-xs text-muted-foreground font-sans">{item.time}</p>
+        <CardContent className="p-0">
+          {loadingTransactions ? (
+            <div className="py-12 flex flex-col items-center justify-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mb-2" />
+              <p className="text-xs font-sans">Loading activity...</p>
+            </div>
+          ) : recentTransactions.length === 0 ? (
+            <div className="space-y-4 text-center py-12">
+              <Activity size={24} className="text-muted-foreground mx-auto mb-2 opacity-30" />
+              <p className="text-sm font-sans text-muted-foreground">No recent activity detected.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {recentTransactions.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === 'deposit' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                      {tx.type === 'deposit' ? <ArrowDownLeft size={14} className="text-green-600" /> : <ArrowUpRight size={14} className="text-red-500" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-sans font-medium text-foreground capitalize">{tx.type}</p>
+                      <p className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">{format(new Date(tx.created_at), "MMM d, h:mm a")}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-sans font-bold ${tx.type === 'withdrawal' ? 'text-red-500' : 'text-foreground'}`}>
+                      {tx.type === 'withdrawal' ? '-' : '+'}${Number(tx.amount).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono">{tx.tx_signature?.slice(0, 8)}...</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-sans font-medium text-foreground">{item.amount}</p>
-                  <span className="text-xs text-primary font-sans font-medium">{item.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
