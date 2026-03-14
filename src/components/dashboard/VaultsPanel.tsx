@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Wallet, Tag, ArrowUpFromLine, ArrowDownToLine, TrendingUp, Shield, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Wallet, Tag, ArrowUpFromLine, ArrowDownToLine, TrendingUp, Shield, Clock, AlertTriangle, Pencil, Trash2, History, Check, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,14 @@ import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
 import WalletConnectModal from "./WalletConnectModal";
+
+interface ActivityEvent {
+  id: string;
+  type: "created" | "deposit" | "withdrawal" | "renamed";
+  amount?: number;
+  oldName?: string;
+  timestamp: string;
+}
 
 interface Vault {
   id: string;
@@ -18,6 +26,7 @@ interface Vault {
   createdAt: string;
   lockDays: number;
   minDeposit: number;
+  activity: ActivityEvent[];
 }
 
 const strategyDefaults: Record<string, { lockDays: number; minDeposit: number; apyRange: string }> = {
@@ -26,15 +35,37 @@ const strategyDefaults: Record<string, { lockDays: number; minDeposit: number; a
   custom: { lockDays: 30, minDeposit: 1000, apyRange: "Variable" },
 };
 
+const now = () => new Date().toISOString();
+
 const defaultVaults: Vault[] = [
-  { id: "v1", name: "Treasury Reserve", tag: "conservative", balance: 150000, apy: 6.8, createdAt: "2026-02-15", lockDays: 90, minDeposit: 50000 },
-  { id: "v2", name: "Yield Pool Alpha", tag: "growth", balance: 100000, apy: 9.4, createdAt: "2026-03-01", lockDays: 30, minDeposit: 10000 },
+  {
+    id: "v1", name: "Treasury Reserve", tag: "conservative", balance: 150000, apy: 6.8, createdAt: "2026-02-15", lockDays: 90, minDeposit: 50000,
+    activity: [
+      { id: "a1", type: "created", timestamp: "2026-02-15T10:00:00Z" },
+      { id: "a2", type: "deposit", amount: 100000, timestamp: "2026-02-16T09:30:00Z" },
+      { id: "a3", type: "deposit", amount: 50000, timestamp: "2026-03-01T14:15:00Z" },
+    ],
+  },
+  {
+    id: "v2", name: "Yield Pool Alpha", tag: "growth", balance: 100000, apy: 9.4, createdAt: "2026-03-01", lockDays: 30, minDeposit: 10000,
+    activity: [
+      { id: "a4", type: "created", timestamp: "2026-03-01T08:00:00Z" },
+      { id: "a5", type: "deposit", amount: 100000, timestamp: "2026-03-02T11:00:00Z" },
+    ],
+  },
 ];
 
 const tagColors: Record<string, string> = {
   conservative: "bg-primary/10 text-primary",
   growth: "bg-accent/10 text-accent",
   custom: "bg-muted text-muted-foreground",
+};
+
+const activityIcon: Record<string, { icon: typeof ArrowDownToLine; color: string }> = {
+  created: { icon: Plus, color: "text-primary" },
+  deposit: { icon: ArrowDownToLine, color: "text-green-500" },
+  withdrawal: { icon: ArrowUpFromLine, color: "text-orange-500" },
+  renamed: { icon: Pencil, color: "text-muted-foreground" },
 };
 
 const VaultsPanel = () => {
@@ -59,6 +90,16 @@ const VaultsPanel = () => {
   const [withdrawVault, setWithdrawVault] = useState<Vault | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawStep, setWithdrawStep] = useState<"form" | "confirm" | "done">("form");
+
+  // Rename
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  // Delete
+  const [deleteVault, setDeleteVault] = useState<Vault | null>(null);
+
+  // Activity
+  const [activityVault, setActivityVault] = useState<Vault | null>(null);
 
   const locked = !isFullyCompliant;
 
@@ -99,6 +140,7 @@ const VaultsPanel = () => {
       createdAt: new Date().toISOString().split("T")[0],
       lockDays,
       minDeposit,
+      activity: [{ id: `a${Date.now()}`, type: "created", timestamp: now() }],
     };
     setVaults([...vaults, vault]);
     setNewName("");
@@ -120,7 +162,9 @@ const VaultsPanel = () => {
     if (!depositVault) return;
     const amt = parseFloat(depositAmount);
     setVaults(vaults.map(v =>
-      v.id === depositVault.id ? { ...v, balance: v.balance + amt } : v
+      v.id === depositVault.id
+        ? { ...v, balance: v.balance + amt, activity: [...v.activity, { id: `a${Date.now()}`, type: "deposit", amount: amt, timestamp: now() }] }
+        : v
     ));
     setDepositStep("done");
     toast.success(`Deposited $${amt.toLocaleString()} USDC into ${depositVault.name}`);
@@ -137,14 +181,43 @@ const VaultsPanel = () => {
     if (!withdrawVault) return;
     const amt = parseFloat(withdrawAmount);
     setVaults(vaults.map(v =>
-      v.id === withdrawVault.id ? { ...v, balance: Math.max(0, v.balance - amt) } : v
+      v.id === withdrawVault.id
+        ? { ...v, balance: Math.max(0, v.balance - amt), activity: [...v.activity, { id: `a${Date.now()}`, type: "withdrawal", amount: amt, timestamp: now() }] }
+        : v
     ));
     setWithdrawStep("done");
     toast.success(`Withdrew $${amt.toLocaleString()} USDC from ${withdrawVault.name}`);
   };
 
+  const handleRename = (vault: Vault) => {
+    if (!renameValue.trim() || renameValue === vault.name) {
+      setRenamingId(null);
+      return;
+    }
+    const oldName = vault.name;
+    setVaults(vaults.map(v =>
+      v.id === vault.id
+        ? { ...v, name: renameValue.trim(), activity: [...v.activity, { id: `a${Date.now()}`, type: "renamed", oldName, timestamp: now() }] }
+        : v
+    ));
+    toast.success(`Vault renamed to "${renameValue.trim()}"`);
+    setRenamingId(null);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteVault) return;
+    setVaults(vaults.filter(v => v.id !== deleteVault.id));
+    toast.success(`Vault "${deleteVault.name}" deleted`);
+    setDeleteVault(null);
+  };
+
   const closeDeposit = () => { setDepositVault(null); setDepositAmount(""); setDepositStep("form"); };
   const closeWithdraw = () => { setWithdrawVault(null); setWithdrawAmount(""); setWithdrawStep("form"); };
+
+  const formatActivityDate = (ts: string) => {
+    const d = new Date(ts);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + " · " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  };
 
   return (
     <div className="space-y-6">
@@ -207,15 +280,55 @@ const VaultsPanel = () => {
           <Card key={vault.id} className="shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-4 sm:p-5">
               <div className="space-y-3">
+                {/* Header with name / rename */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <Wallet size={14} className="text-primary" />
                   </div>
-                  <h3 className="text-sm font-sans font-semibold text-foreground truncate">{vault.name}</h3>
+                  {renamingId === vault.id ? (
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      <Input
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        className="h-7 text-sm font-sans font-semibold"
+                        autoFocus
+                        onKeyDown={e => { if (e.key === "Enter") handleRename(vault); if (e.key === "Escape") setRenamingId(null); }}
+                      />
+                      <button onClick={() => handleRename(vault)} className="text-primary hover:text-primary/80 transition-colors"><Check size={14} /></button>
+                      <button onClick={() => setRenamingId(null)} className="text-muted-foreground hover:text-foreground transition-colors"><X size={14} /></button>
+                    </div>
+                  ) : (
+                    <h3 className="text-sm font-sans font-semibold text-foreground truncate">{vault.name}</h3>
+                  )}
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-sans font-medium capitalize ${tagColors[vault.tag] || tagColors.custom}`}>
                     <Tag size={8} />
                     {vault.tag}
                   </span>
+
+                  {/* Management actions */}
+                  <div className="ml-auto flex items-center gap-1">
+                    <button
+                      onClick={() => { setRenamingId(vault.id); setRenameValue(vault.name); }}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      title="Rename vault"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      onClick={() => setActivityVault(vault)}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      title="View activity"
+                    >
+                      <History size={12} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteVault(vault)}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Delete vault"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -297,7 +410,6 @@ const VaultsPanel = () => {
               </div>
             </div>
 
-            {/* Custom strategy inputs */}
             {newTag === "custom" && (
               <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <p className="text-xs font-sans font-semibold text-primary uppercase tracking-wider">Custom Parameters</p>
@@ -391,12 +503,12 @@ const VaultsPanel = () => {
                   <span className="text-muted-foreground">Compliance</span><span className="text-primary">✓ Verified</span>
                 </div>
                 <div className="flex justify-between px-4 py-2 text-xs font-sans">
-                  <span className="text-muted-foreground">Lock Period</span><span className="text-foreground">30 days</span>
+                  <span className="text-muted-foreground">Lock Period</span><span className="text-foreground">{depositVault.lockDays} days</span>
                 </div>
               </div>
               <div className="flex items-start gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3">
                 <AlertTriangle size={14} className="text-yellow-600 mt-0.5 shrink-0" />
-                <p className="text-xs font-sans text-foreground">Deposits are subject to a 30-day lock period. Early withdrawal may incur penalties.</p>
+                <p className="text-xs font-sans text-foreground">Deposits are subject to a {depositVault.lockDays}-day lock period. Early withdrawal may incur penalties.</p>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDepositStep("form")} className="font-sans text-sm">Back</Button>
@@ -488,6 +600,69 @@ const VaultsPanel = () => {
               <p className="text-lg font-bold font-sans text-foreground">${parseFloat(withdrawAmount).toLocaleString()} USDC withdrawn</p>
               <p className="text-xs text-muted-foreground font-sans">Funds sent to your connected wallet.</p>
               <Button onClick={closeWithdraw} className="font-sans text-sm">Done</Button>
+            </div>
+          )}
+        </ThemedDialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={!!deleteVault} onOpenChange={(open) => !open && setDeleteVault(null)}>
+        <ThemedDialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg">Delete Vault</DialogTitle>
+            <DialogDescription className="font-sans text-sm">
+              Are you sure you want to delete <strong>{deleteVault?.name}</strong>?
+              {deleteVault && deleteVault.balance > 0 && (
+                <span className="block mt-2 text-destructive font-medium">
+                  This vault still has ${deleteVault.balance.toLocaleString()} USDC. Withdraw all funds before deleting.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteVault(null)} className="font-sans text-sm">Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={!!deleteVault && deleteVault.balance > 0}
+              className="font-sans text-sm gap-1.5"
+            >
+              <Trash2 size={14} />
+              Delete Vault
+            </Button>
+          </DialogFooter>
+        </ThemedDialogContent>
+      </Dialog>
+
+      {/* Activity Timeline Modal */}
+      <Dialog open={!!activityVault} onOpenChange={(open) => !open && setActivityVault(null)}>
+        <ThemedDialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg">Vault Activity</DialogTitle>
+            <DialogDescription className="font-sans text-sm">{activityVault?.name}</DialogDescription>
+          </DialogHeader>
+          {activityVault && (
+            <div className="relative pl-6 space-y-0">
+              {/* Timeline line */}
+              <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
+              {[...activityVault.activity].reverse().map((event) => {
+                const config = activityIcon[event.type] || activityIcon.created;
+                const Icon = config.icon;
+                return (
+                  <div key={event.id} className="relative flex items-start gap-3 py-3">
+                    <div className={`absolute left-[-13px] w-6 h-6 rounded-full bg-background border-2 border-border flex items-center justify-center`}>
+                      <Icon size={10} className={config.color} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-sans font-medium text-foreground capitalize">
+                        {event.type === "renamed" ? `Renamed from "${event.oldName}"` : event.type}
+                        {event.amount != null && <span className="ml-1 text-primary">${event.amount.toLocaleString()}</span>}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-sans mt-0.5">{formatActivityDate(event.timestamp)}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </ThemedDialogContent>
