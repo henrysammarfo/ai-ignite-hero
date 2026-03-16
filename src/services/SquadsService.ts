@@ -1,11 +1,13 @@
 import * as multisig from '@sqds/multisig'
-import { 
-  Connection, Keypair, PublicKey, 
-  Transaction, SystemProgram 
+import {
+  Connection, Keypair, PublicKey,
+  Transaction, SystemProgram
 } from '@solana/web3.js'
 import { supabase } from '../integrations/supabase/client'
 
-const RPC_URL = import.meta.env.VITE_HELIUS_RPC_URL 
+// Use a fallback to process.env for testing environments (Vitest)
+const RPC_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_HELIUS_RPC_URL)
+  || (typeof process !== 'undefined' && process.env.VITE_HELIUS_RPC_URL)
   || 'https://api.devnet.solana.com'
 
 const connection = new Connection(RPC_URL, 'confirmed')
@@ -28,7 +30,7 @@ export class SquadsService {
     threshold: number
     vaultName: string
   }): Promise<{ multisigPda: string, txSignature: string }> {
-    
+
     const createKey = Keypair.generate()
     const [multisigPda] = multisig.getMultisigPda({
       createKey: createKey.publicKey
@@ -46,18 +48,19 @@ export class SquadsService {
         permissions: multisig.types.Permissions.all()
       })),
       timeLock: 0,
+      treasury: multisigPda, // Default to multisigPda if not specified
       rentCollector: null,
     })
 
     // Save to Supabase vault_config
-    await supabase.from('vault_config').upsert({
+    await (supabase as any).from('vault_config').upsert({
       multisig_pda: multisigPda.toString(),
       vault_name: params.vaultName,
       custody_provider: 'squads'
     })
 
     // Log to audit
-    await supabase.from('audit_logs').insert({
+    await (supabase as any).from('audit_logs').insert({
       wallet_address: params.creatorKeypair.publicKey.toString(),
       action: 'vault_created',
       provider_used: 'squads-v4',
@@ -65,9 +68,9 @@ export class SquadsService {
       tx_signature: signature
     })
 
-    return { 
-      multisigPda: multisigPda.toString(), 
-      txSignature: signature 
+    return {
+      multisigPda: multisigPda.toString(),
+      txSignature: signature
     }
   }
 
@@ -93,7 +96,7 @@ export class SquadsService {
 
   // Get stored vault config from Supabase
   static async getSavedVaultConfig() {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('vault_config')
       .select('*')
       .single()

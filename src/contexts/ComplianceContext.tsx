@@ -193,26 +193,23 @@ export const ComplianceProvider = ({ children }: { children: ReactNode }) => {
    * For now, it sets status to "in_progress" so the UI reflects the loading state.
    * The actual verification result should come back via `updateStepStatus`.
    */
-  const initiateVerification = useCallback((id: string) => {
+  const initiateVerification = useCallback(async (id: string) => {
     updateStepStatus(id, "in_progress");
 
-    // TODO: Replace with real API call
-    // This is a placeholder that auto-completes after 2s for demo purposes.
-    // Remove this entire setTimeout block when wiring to real APIs.
-    setTimeout(() => {
-      const now = new Date();
-      const expiry = new Date(now);
-      expiry.setMonth(expiry.getMonth() + 3);
+    try {
+      const { data, error } = await (ComplianceService as any).invokeVerification(id);
+      
+      if (error) {
+        console.error(`Verification error for ${id}:`, error);
+        updateStepStatus(id, "failed", { errorMessage: error.message });
+        return;
+      }
 
-      const mockVerification: Partial<ComplianceVerification> = {
-        hash: `0x${Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
-        timestamp: now.toISOString(),
-        expiresAt: expiry.toISOString(),
-        riskScore: id === "aml" ? "Low" : null,
-        errorMessage: null,
-      };
-      updateStepStatus(id, "verified", mockVerification);
-    }, 2000);
+      updateStepStatus(id, data.status, data.verification);
+    } catch (err) {
+      console.error(`Unexpected error for ${id}:`, err);
+      updateStepStatus(id, "failed", { errorMessage: "Connection to compliance service failed" });
+    }
   }, [updateStepStatus]);
 
   const resetStep = useCallback((id: string) => {

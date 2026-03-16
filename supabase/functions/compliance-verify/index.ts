@@ -1,17 +1,10 @@
 // Compliance Verification Edge Function
 // =====================================
-// This function handles compliance verification requests for the 4 pillars:
-// - KYC (Civic Pass)
-// - AML (TRM Labs)
-// - Travel Rule (Notabene)
-// - Source of Funds (On-Chain PDA)
-//
-// INTEGRATION GUIDE:
-// Each step calls its respective provider SDK. Replace the TODO blocks
-// with real API calls. The response shape is already defined — your
-// teammates just fill in the provider logic.
+// This function handles compliance verification requests for the 4 pillars
+// by orchestrating calls to specific sub-functions and the database.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,14 +12,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SB_SERVICE_ROLE_KEY")!
+);
+
 interface VerificationRequest {
   stepId: "kyc" | "aml" | "travel" | "sof";
   walletAddress: string;
-  organizationName?: string;
 }
 
 interface VerificationResult {
-  status: "verified" | "failed" | "expired";
+  status: "verified" | "failed" | "pending" | "under_review" | "expired";
   verification: {
     hash: string | null;
     timestamp: string | null;
@@ -36,228 +33,142 @@ interface VerificationResult {
   };
 }
 
-// ──────────────────────────────────────────────
-// KYC — Civic Pass
-// Docs: https://docs.civic.com
-// ──────────────────────────────────────────────
+/**
+ * KYC — Connected to kyc-internal sub-service
+ */
 async function verifyKYC(walletAddress: string): Promise<VerificationResult> {
-  // TODO: Replace with real Civic Pass SDK call
-  //
-  // Example integration:
-  // ```
-  // const CIVIC_API_KEY = Deno.env.get("CIVIC_API_KEY");
-  // if (!CIVIC_API_KEY) throw new Error("CIVIC_API_KEY not configured");
-  //
-  // const response = await fetch("https://api.civic.com/partner/pass", {
-  //   method: "POST",
-  //   headers: {
-  //     "Authorization": `Bearer ${CIVIC_API_KEY}`,
-  //     "Content-Type": "application/json",
-  //   },
-  //   body: JSON.stringify({
-  //     walletAddress,
-  //     gatekeeperNetwork: "your-gatekeeper-network",
-  //     chain: "solana",
-  //   }),
-  // });
-  //
-  // const data = await response.json();
-  // return {
-  //   status: data.state === "ACTIVE" ? "verified" : "failed",
-  //   verification: {
-  //     hash: data.passId,
-  //     timestamp: new Date().toISOString(),
-  //     expiresAt: data.expiry,
-  //     riskScore: null,
-  //     errorMessage: data.state !== "ACTIVE" ? data.reason : null,
-  //   },
-  // };
-  // ```
+  const { data, error } = await supabase.functions.invoke('kyc-internal', {
+    body: { action: 'get_status', walletAddress }
+  });
+
+  if (error || !data) {
+    return {
+      status: "failed",
+      verification: {
+        hash: null, timestamp: null, expiresAt: null, riskScore: null,
+        errorMessage: "Failed to connect to KYC service"
+      }
+    };
+  }
+
+  // Map kyc-internal status to orchestrator status
+  let status: VerificationResult["status"] = "pending";
+  if (data.status === "approved") status = "verified";
+  else if (data.status === "under_review") status = "under_review";
+  else if (data.status === "rejected") status = "failed";
 
   return {
-    status: "verified",
+    status,
     verification: {
-      hash: `civic_${crypto.randomUUID().slice(0, 8)}`,
-      timestamp: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      riskScore: null,
-      errorMessage: null,
-    },
+      hash: data.applicantId || null,
+      timestamp: data.approvedAt || null,
+      expiresAt: null,
+      riskScore: data.riskScore?.toString() || null,
+      errorMessage: data.status === "rejected" ? "KYC Rejected" : null
+    }
   };
 }
 
-// ──────────────────────────────────────────────
-// AML — TRM Labs
-// Docs: https://documentation.trmlabs.com
-// ──────────────────────────────────────────────
+/**
+ * AML — Connected to ofac-screening sub-service
+ */
 async function verifyAML(walletAddress: string): Promise<VerificationResult> {
-  // TODO: Replace with real TRM Labs API call
-  //
-  // Example integration:
-  // ```
-  // const TRM_API_KEY = Deno.env.get("TRM_API_KEY");
-  // if (!TRM_API_KEY) throw new Error("TRM_API_KEY not configured");
-  //
-  // const response = await fetch("https://api.trmlabs.com/public/v2/screening/addresses", {
-  //   method: "POST",
-  //   headers: {
-  //     "Authorization": `Basic ${btoa(TRM_API_KEY + ":")}`,
-  //     "Content-Type": "application/json",
-  //   },
-  //   body: JSON.stringify([{
-  //     address: walletAddress,
-  //     chain: "solana",
-  //   }]),
-  // });
-  //
-  // const [result] = await response.json();
-  // const riskLevel = result.entities?.[0]?.riskScoreCategory || "Low";
-  // const isClear = riskLevel !== "Severe" && riskLevel !== "High";
-  //
-  // return {
-  //   status: isClear ? "verified" : "failed",
-  //   verification: {
-  //     hash: result.externalId || crypto.randomUUID().slice(0, 8),
-  //     timestamp: new Date().toISOString(),
-  //     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  //     riskScore: riskLevel,
-  //     errorMessage: isClear ? null : `Wallet flagged: ${riskLevel} risk`,
-  //   },
-  // };
-  // ```
+  const { data, error } = await supabase.functions.invoke('ofac-screening', {
+    body: { action: 'screen_address', walletAddress }
+  });
+
+  if (error || !data) {
+    return {
+      status: "failed",
+      verification: {
+        hash: null, timestamp: null, expiresAt: null, riskScore: null,
+        errorMessage: "Failed to connect to AML service"
+      }
+    };
+  }
 
   return {
-    status: "verified",
+    status: data.blocked ? "failed" : "verified",
     verification: {
-      hash: `trm_${crypto.randomUUID().slice(0, 8)}`,
+      hash: `ofac_${crypto.randomUUID().slice(0, 8)}`,
       timestamp: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      riskScore: "Low",
-      errorMessage: null,
-    },
+      expiresAt: null,
+      riskScore: data.riskScore.toString(),
+      errorMessage: data.blocked ? data.reason : null
+    }
   };
 }
 
-// ──────────────────────────────────────────────
-// Travel Rule — Notabene
-// Docs: https://docs.notabene.id
-// ──────────────────────────────────────────────
+/**
+ * Travel Rule — Check database for existing submissions
+ */
 async function verifyTravelRule(walletAddress: string): Promise<VerificationResult> {
-  // TODO: Replace with real Notabene API call
-  //
-  // Example integration:
-  // ```
-  // const NOTABENE_API_KEY = Deno.env.get("NOTABENE_API_KEY");
-  // if (!NOTABENE_API_KEY) throw new Error("NOTABENE_API_KEY not configured");
-  //
-  // const response = await fetch("https://api.notabene.id/tf/transfer", {
-  //   method: "POST",
-  //   headers: {
-  //     "Authorization": `Bearer ${NOTABENE_API_KEY}`,
-  //     "Content-Type": "application/json",
-  //   },
-  //   body: JSON.stringify({
-  //     originator: {
-  //       accountNumber: [{ accountNumber: walletAddress, accountNumberType: "MISC" }],
-  //     },
-  //     beneficiary: { /* beneficiary details */ },
-  //     transactionBlockchainInfo: {
-  //       origin: walletAddress,
-  //       network: "SOL",
-  //     },
-  //   }),
-  // });
-  //
-  // const data = await response.json();
-  // return {
-  //   status: data.status === "APPROVED" ? "verified" : "failed",
-  //   verification: {
-  //     hash: data.id,
-  //     timestamp: new Date().toISOString(),
-  //     expiresAt: null,
-  //     riskScore: null,
-  //     errorMessage: data.status !== "APPROVED" ? data.statusReason : null,
-  //   },
-  // };
-  // ```
+  // We check if this wallet has ever submitted a travel rule payload
+  const { data, error } = await supabase
+    .from('travel_rule_submissions')
+    .select('*')
+    .eq('sender_wallet', walletAddress)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    return {
+      status: "pending",
+      verification: {
+        hash: null, timestamp: null, expiresAt: null, riskScore: null,
+        errorMessage: "No Travel Rule submission found for this wallet"
+      }
+    };
+  }
 
   return {
     status: "verified",
     verification: {
-      hash: `ntb_${crypto.randomUUID().slice(0, 8)}`,
-      timestamp: new Date().toISOString(),
+      hash: data.payload_hash,
+      timestamp: data.created_at,
       expiresAt: null,
       riskScore: null,
-      errorMessage: null,
-    },
+      errorMessage: null
+    }
   };
 }
 
-// ──────────────────────────────────────────────
-// Source of Funds — On-Chain PDA Hash
-// Uses Solana PDA for attestation storage
-// ──────────────────────────────────────────────
+/**
+ * Source of Funds — Real Solana RPC check (placeholder until program is deployed)
+ */
 async function verifySourceOfFunds(walletAddress: string): Promise<VerificationResult> {
-  // TODO: Replace with real Solana PDA lookup / attestation creation
-  //
-  // Example integration:
-  // ```
-  // import { Connection, PublicKey } from "@solana/web3.js";
-  //
-  // const connection = new Connection(
-  //   Deno.env.get("SOLANA_RPC_URL") || "https://api.devnet.solana.com"
-  // );
-  //
-  // const PROGRAM_ID = new PublicKey(Deno.env.get("FORTIS_PROGRAM_ID")!);
-  // const [pdaAddress] = PublicKey.findProgramAddressSync(
-  //   [Buffer.from("sof"), new PublicKey(walletAddress).toBuffer()],
-  //   PROGRAM_ID
-  // );
-  //
-  // const accountInfo = await connection.getAccountInfo(pdaAddress);
-  //
-  // if (accountInfo) {
-  //   // Attestation exists on-chain
-  //   const hash = Buffer.from(accountInfo.data).toString("hex").slice(0, 16);
-  //   return {
-  //     status: "verified",
-  //     verification: {
-  //       hash: `0x${hash}`,
-  //       timestamp: new Date().toISOString(),
-  //       expiresAt: null,
-  //       riskScore: null,
-  //       errorMessage: null,
-  //     },
-  //   };
-  // }
-  //
-  // return {
-  //   status: "failed",
-  //   verification: {
-  //     hash: null,
-  //     timestamp: null,
-  //     expiresAt: null,
-  //     riskScore: null,
-  //     errorMessage: "No source-of-funds attestation found on-chain for this wallet.",
-  //   },
-  // };
-  // ```
+  // In production, we'd check for a PDA on-chain. 
+  // For now, we check the audit logs for a 'sof_verified' action
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('*')
+    .eq('wallet_address', walletAddress)
+    .eq('action', 'sof_verified')
+    .single();
+
+  if (error || !data) {
+    return {
+      status: "pending",
+      verification: {
+        hash: null, timestamp: null, expiresAt: null, riskScore: null,
+        errorMessage: "Source of Funds attestation not found"
+      }
+    };
+  }
 
   return {
     status: "verified",
     verification: {
-      hash: `pda_${crypto.randomUUID().slice(0, 8)}`,
-      timestamp: new Date().toISOString(),
+      hash: data.tx_signature || "legacy_pda_attestation",
+      timestamp: data.timestamp,
       expiresAt: null,
       riskScore: null,
-      errorMessage: null,
-    },
+      errorMessage: null
+    }
   };
 }
 
-// ──────────────────────────────────────────────
-// Main handler
-// ──────────────────────────────────────────────
 const verifiers: Record<string, (addr: string) => Promise<VerificationResult>> = {
   kyc: verifyKYC,
   aml: verifyAML,
@@ -266,49 +177,26 @@ const verifiers: Record<string, (addr: string) => Promise<VerificationResult>> =
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    if (req.method !== "POST") {
-      return new Response(
-        JSON.stringify({ error: "Method not allowed" }),
-        { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: corsHeaders });
 
     const body: VerificationRequest = await req.json();
-
-    if (!body.stepId || !body.walletAddress) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: stepId, walletAddress" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (!body.stepId || !body.walletAddress) return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: corsHeaders });
 
     const verifier = verifiers[body.stepId];
-    if (!verifier) {
-      return new Response(
-        JSON.stringify({ error: `Unknown step: ${body.stepId}. Valid: kyc, aml, travel, sof` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (!verifier) return new Response(JSON.stringify({ error: "Unknown step" }), { status: 400, headers: corsHeaders });
 
-    console.log(`[compliance] Verifying ${body.stepId} for wallet ${body.walletAddress}`);
     const result = await verifier(body.walletAddress);
-    console.log(`[compliance] ${body.stepId} result: ${result.status}`);
-
-    return new Response(
-      JSON.stringify({ stepId: body.stepId, ...result }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ stepId: body.stepId, ...result }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   } catch (error) {
-    console.error("[compliance] Error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
 });

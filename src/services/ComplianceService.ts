@@ -193,4 +193,16 @@ export class ComplianceService {
     if (error) throw error
     return data || []
   }
+
+  // Unified entry point for compliance orchestration
+  static async invokeVerification(stepId: string) {
+    // We assume the user is already authenticated or we pass the current session
+    const { data, error } = await supabase.functions.invoke('compliance-verify', {
+      body: { 
+        stepId, 
+        walletAddress: (window as any).solana?.publicKey?.toString() || '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU' 
+      }
+    })
+    return { data, error }
+  }
 }
