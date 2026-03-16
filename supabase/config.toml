@@ -1,0 +1,4 @@
+project_id = "ynpquqdapsovseichujj"
+
+[functions.compliance-verify]
+verify_jwt = false
