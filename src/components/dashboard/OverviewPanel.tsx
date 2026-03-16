@@ -23,13 +23,18 @@ const statusIcons: Record<ComplianceStatus, typeof CheckCircle2> = {
 const OverviewPanel = () => {
   const { connected, wallet } = useWallet();
   const { connection } = useConnection();
-  const { steps, completedCount, totalCount } = useCompliance();
+  const { steps, completedCount, totalCount, initiateVerification } = useCompliance();
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const [totalDeposited, setTotalDeposited] = useState<number>(0);
+  const [totalYield, setTotalYield] = useState<number>(0);
   const [loadingStats, setLoadingStats] = useState(true);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
+
+  const triggerVerification = (id: string) => {
+    initiateVerification(id);
+  };
 
   const provider = connected && wallet
     ? new anchor.AnchorProvider(connection, wallet.adapter as any, { preflightCommitment: "processed" })
@@ -48,7 +53,10 @@ const OverviewPanel = () => {
         const vaults = await program.account.vaultState.all();
 
         const total = vaults.reduce((sum, v) => sum + (v.account.totalAum.toNumber() / 1e6), 0);
+        const yieldTotal = vaults.reduce((sum, v) => sum + (v.account.totalYieldHarvested.toNumber() / 1e6), 0);
+
         setTotalDeposited(total);
+        setTotalYield(yieldTotal);
       } catch (err) {
         console.error("Failed to fetch vaults for overview:", err);
       } finally {
@@ -88,7 +96,7 @@ const OverviewPanel = () => {
   const dynamicStats = [
     { label: "Total Instituional TVL", value: loadingStats ? "..." : `$${totalDeposited.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, change: "Live", icon: DollarSign },
     { label: "Current APY", value: "8.2%", change: "Avg Weighted", icon: TrendingUp },
-    { label: "Yield Earned", value: "$0.00", change: "Awaiting Distribution", icon: TrendingUp },
+    { label: "Yield Earned", value: loadingStats ? "..." : `$${totalYield.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, change: "Awaiting Distribution", icon: TrendingUp },
     { label: "Next Payout", value: "2d 14h", change: "Next Epoch", icon: Clock },
   ];
 
@@ -138,34 +146,83 @@ const OverviewPanel = () => {
         ))}
       </div>
 
-      {/* Compliance Status Quick View */}
+      {/* Compliance Status Detailed View */}
       <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
-            <Shield size={16} className="text-primary" />
-            Compliance Status
-            <span className="text-xs font-normal text-muted-foreground ml-auto">{completedCount}/{totalCount}</span>
-          </CardTitle>
+        <CardHeader className="pb-3 px-4 sm:px-6">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
+              <Shield size={16} className="text-primary" />
+              Compliance Pillars
+            </CardTitle>
+            <span className="text-xs font-sans text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {completedCount}/{totalCount} Verified
+            </span>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
+        <CardContent className="px-4 sm:px-6 pb-6">
+          <div className="grid gap-3">
             {steps.map((step) => {
               const Icon = statusIcons[step.status];
+              const isVerified = step.status === "verified";
+              const isFailed = step.status === "failed";
+              const isInProgress = step.status === "in_progress";
+
               return (
-                <span
-                  key={step.id}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-sans font-medium ring-1 ring-inset ${step.status === "verified"
-                    ? "bg-primary/10 text-primary ring-primary/20"
-                    : step.status === "in_progress"
-                      ? "bg-muted text-muted-foreground ring-border"
-                      : step.status === "failed"
-                        ? "bg-destructive/10 text-destructive ring-destructive/20"
-                        : "bg-muted text-muted-foreground ring-border"
-                    }`}
+                <div 
+                  key={step.id} 
+                  className={`p-4 rounded-xl border transition-all duration-200 ${
+                    isVerified ? "bg-primary/5 border-primary/20" : "bg-card border-border hover:border-muted-foreground/20"
+                  }`}
                 >
-                  <Icon size={10} className={step.status === "in_progress" ? "animate-spin" : ""} />
-                  {step.title.split("—")[0].trim()}
-                </span>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-sans font-bold text-foreground">{step.title}</h4>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-sans font-semibold uppercase tracking-tight ${
+                          isVerified ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                        }`}>
+                          {step.provider}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                        {step.description}
+                      </p>
+                      
+                      {isVerified && step.verification.hash && (
+                        <div className="mt-2 flex items-center gap-2 text-[10px] font-mono text-muted-foreground bg-muted/50 p-1.5 rounded border border-border/50">
+                          <CheckCircle2 size={10} className="text-primary" />
+                          <span className="truncate">Hash: {step.verification.hash}</span>
+                        </div>
+                      )}
+
+                      {isFailed && step.verification.errorMessage && (
+                        <div className="mt-2 flex items-center gap-2 text-[10px] font-sans text-destructive bg-destructive/5 p-1.5 rounded border border-destructive/10">
+                          <AlertTriangle size={10} />
+                          <span>{step.verification.errorMessage}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant={isVerified ? "outline" : isFailed ? "destructive" : "default"}
+                      disabled={isVerified || isInProgress}
+                      onClick={() => {
+                        triggerVerification(step.id);
+                      }}
+                      className="min-w-[100px] h-9 gap-2 shadow-sm"
+                    >
+                      {isInProgress ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : isVerified ? (
+                        <CheckCircle2 size={14} />
+                      ) : (
+                        "Verify"
+                      )}
+                      {isInProgress ? "..." : isVerified ? "Done" : isFailed ? "Retry" : "Verify"}
+                    </Button>
+                  </div>
+                </div>
               );
             })}
           </div>

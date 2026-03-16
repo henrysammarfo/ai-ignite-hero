@@ -8,6 +8,9 @@ import type { Idl } from "@coral-xyz/anchor";
 // The Program ID generated during deployment
 export const PROGRAM_ID = new PublicKey(idl.address);
 
+// Demo USDC Mint on Devnet
+export const USDC_MINT = new PublicKey("4rvuRtkGefe8ysGWZ7KCcKQx4kzmpLdyDcRG97T77mst");
+
 // Type alias so frontend components can use it easily
 export type ComplianceVaultProgram = anchor.Program<ComplianceVault & Idl>;
 

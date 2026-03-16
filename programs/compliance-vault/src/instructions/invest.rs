@@ -41,7 +41,7 @@ pub struct Invest<'info> {
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
-
+pub fn handler(ctx: Context<Invest>, amount: u64) -> Result<()> {
     // 1. Transfer from Vault PDA to strategy
     let seeds = &[
         b"vault",

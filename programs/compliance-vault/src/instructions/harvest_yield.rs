@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
-use crate::{state::*, errors::VaultError, DepositEvent};
+use crate::{state::*, errors::VaultError};
 
 #[derive(Accounts)]
 pub struct HarvestYield<'info> {

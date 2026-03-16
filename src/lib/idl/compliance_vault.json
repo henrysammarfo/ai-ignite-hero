@@ -118,6 +118,66 @@
       ]
     },
     {
+      "name": "harvest_yield",
+      "discriminator": [
+        28,
+        200,
+        150,
+        200,
+        69,
+        56,
+        38,
+        133
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "external_yield_source",
+          "writable": true
+        },
+        {
+          "name": "vault_usdc",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "initialize_vault",
       "discriminator": [
         48,
@@ -210,6 +270,10 @@
         },
         {
           "name": "yield_strategy"
+        },
+        {
+          "name": "strategy_usdc",
+          "writable": true
         },
         {
           "name": "yield_position",
@@ -438,6 +502,60 @@
       ]
     }
   ],
+  "events": [
+    {
+      "name": "DepositEvent",
+      "discriminator": [
+        120,
+        248,
+        61,
+        83,
+        31,
+        142,
+        107,
+        144
+      ]
+    },
+    {
+      "name": "InvestEvent",
+      "discriminator": [
+        46,
+        222,
+        143,
+        59,
+        183,
+        185,
+        118,
+        106
+      ]
+    },
+    {
+      "name": "WithdrawEvent",
+      "discriminator": [
+        22,
+        9,
+        133,
+        26,
+        160,
+        44,
+        71,
+        192
+      ]
+    },
+    {
+      "name": "YieldHarvestEvent",
+      "discriminator": [
+        76,
+        167,
+        226,
+        171,
+        39,
+        207,
+        100,
+        31
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
@@ -476,6 +594,26 @@
     }
   ],
   "types": [
+    {
+      "name": "DepositEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
     {
       "name": "DepositorAccount",
       "type": {
@@ -523,8 +661,32 @@
             "type": "u64"
           },
           {
+            "name": "yield_earned",
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InvestEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "strategy",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }
@@ -551,6 +713,10 @@
             "type": "u64"
           },
           {
+            "name": "total_yield_harvested",
+            "type": "u64"
+          },
+          {
             "name": "whitelist",
             "type": {
               "vec": "pubkey"
@@ -567,6 +733,42 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "YieldHarvestEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }

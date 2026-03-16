@@ -53,16 +53,21 @@ const YieldPanel = () => {
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const connection = new Connection("https://api.devnet.solana.com");
+        const connection = new Connection("https://api.devnet.solana.com", "confirmed");
         const pythClient = new PythHttpClient(connection, getPythProgramKeyForCluster("devnet"));
         const data = await pythClient.getData();
         const price = data.productPrice.get(USDC_FEED);
 
         if (price && price.price) {
+          console.log("[Yield] Pyth USDC Price Loaded:", price.price);
           setUsdcPrice(price.price);
+        } else {
+          // Default to 1.0 for USDC if feed is weird
+          setUsdcPrice(1.0000);
         }
       } catch (err) {
-        console.error("Pyth Oracle error:", err);
+        console.warn("[Yield] Pyth Oracle error - falling back to 1.0:", err);
+        setUsdcPrice(1.0000);
       } finally {
         setLoadingOracle(false);
       }

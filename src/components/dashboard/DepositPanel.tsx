@@ -8,11 +8,20 @@ import { useWallet } from "@/contexts/WalletContext";
 import { useConnection } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
 import { useCompliance } from "@/contexts/ComplianceContext";
-import WalletConnectModal from "./WalletConnectModal";
+import { getProgram, USDC_MINT } from "@/lib/solana";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { useWallet as useSolanaWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import { toast } from "sonner";
-import { PROGRAM_ID, getVaultPDA, getDepositorPDA } from "@/lib/solana";
 import { useEffect } from "react";
-import { getProgram } from "@/lib/solana";
+
+const getDepositorPDA = (vault: PublicKey, depositor: PublicKey) => {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("depositor"), vault.toBuffer(), depositor.toBuffer()],
+    new PublicKey("2QBypCZ2Aru2aiyvixQ8AWrpuynFnZMVEDUySriWBw9m") // Compliance Vault Program ID
+  );
+  return pda;
+};
 
 interface VaultOption {
   id: string;
@@ -24,6 +33,7 @@ interface VaultOption {
 
 const DepositPanel = () => {
   const { connected, publicKey } = useWallet();
+  const { wallet } = useSolanaWallet();
   const { connection } = useConnection();
   const { isFullyCompliant, steps } = useCompliance();
 
@@ -111,13 +121,19 @@ const DepositPanel = () => {
       const vaultKey = new PublicKey(vault.id);
       const depositorPDA = getDepositorPDA(vaultKey, userKey);
 
+      const vaultUsdc = getAssociatedTokenAddressSync(USDC_MINT, vaultKey, true);
+      const depositorUsdc = getAssociatedTokenAddressSync(USDC_MINT, userKey);
+
       await program.methods
         .deposit(amountBN, sofHash)
         .accounts({
           depositor: userKey,
           vaultState: vaultKey,
           depositorAccount: depositorPDA,
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+          gatewayToken: userKey, // Using user as placeholder for gateway if not active in demo
+          depositorUsdc: depositorUsdc,
+          vaultUsdc: vaultUsdc,
+          tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
         } as any)
         .rpc();

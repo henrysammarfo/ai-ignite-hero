@@ -10,7 +10,8 @@ import * as anchor from "@coral-xyz/anchor";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
 import WalletConnectModal from "./WalletConnectModal";
-import { PROGRAM_ID, getVaultPDA, getDepositorPDA, getProgram } from "@/lib/solana";
+import { PROGRAM_ID, getVaultPDA, getDepositorPDA, getProgram, USDC_MINT } from "@/lib/solana";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect } from "react";
 
@@ -211,23 +212,22 @@ const VaultsPanel = () => {
       const userKey = new PublicKey(publicKey);
       const vaultKey = new PublicKey(depositVault.id);
 
-      // Calculate derived accounts
-      const depositorPDA = getDepositorPDA(vaultKey, userKey);
+      const vaultUsdc = getAssociatedTokenAddressSync(USDC_MINT, vaultKey, true);
+      const depositorUsdc = getAssociatedTokenAddressSync(USDC_MINT, userKey);
 
-      // Setup the token instructions (requires the frontend to have USDC mint handling etc. in a real prod env)
-      // For this hackathon scope we're interacting with the contract structure
+      // Setup the token instructions
       await program.methods
         .deposit(new anchor.BN(amt * 1e6), Array.from(Buffer.alloc(32))) // Mock source of funds hash
         .accounts({
           depositor: userKey,
           vaultState: vaultKey,
           depositorAccount: depositorPDA,
-          // gatewayToken: We would pass the actual Civic gateway token derived from the user's wallet
-          // depositorUsdc: user's ATA
-          // vaultUsdc: vault's ATA
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+          gatewayToken: userKey, // Placeholder for demo
+          depositorUsdc: depositorUsdc,
+          vaultUsdc: vaultUsdc,
+          tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
-        } as any) // Type casting due to missing optional ATA accounts in this mocked UI flow
+        } as any)
         .rpc();
 
       setDepositStep("done");
@@ -264,16 +264,19 @@ const VaultsPanel = () => {
 
       const depositorPDA = getDepositorPDA(vaultKey, userKey);
 
+      const vaultUsdc = getAssociatedTokenAddressSync(USDC_MINT, vaultKey, true);
+      const depositorUsdc = getAssociatedTokenAddressSync(USDC_MINT, userKey);
+
       await program.methods
         .withdraw(new anchor.BN(amt * 1e6))
         .accounts({
           vaultState: vaultKey,
           depositorAccount: depositorPDA,
           depositor: userKey,
-          // depositorUsdc:
-          // vaultUsdc:
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-        } as any) // Assuming ATA logic is handled externally for the scope of the demo UI
+          depositorUsdc: depositorUsdc,
+          vaultUsdc: vaultUsdc,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        } as any)
         .rpc();
 
       setVaults(vaults.map(v =>
