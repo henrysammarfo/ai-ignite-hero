@@ -34,3 +34,6 @@ test-ledger/
 Cargo.lock
 debug/
 release/
+
+# Environment Variables
+.env
