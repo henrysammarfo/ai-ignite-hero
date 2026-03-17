@@ -33,6 +33,8 @@ interface VerificationResult {
   };
 }
 
+
+
 /**
  * KYC — Connected to kyc-internal sub-service
  */
