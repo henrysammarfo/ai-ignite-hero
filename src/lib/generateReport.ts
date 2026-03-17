@@ -1,5 +1,7 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface ReportOptions {
   type: "FINMA" | "AML" | "Travel Rule" | "Performance";
@@ -199,12 +201,12 @@ export function generateReport({ type, walletAddress, date }: ReportOptions): vo
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
-  let y = 20;
+  let curY = 20;
 
   const addPageIfNeeded = (needed: number) => {
-    if (y + needed > 270) {
+    if (curY + needed > 270) {
       doc.addPage();
-      y = 20;
+      curY = 20;
     }
   };
 
@@ -214,36 +216,36 @@ export function generateReport({ type, walletAddress, date }: ReportOptions): vo
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.setTextColor(212, 175, 55);
+  doc.setTextColor(184, 134, 11); // Darker Gold for professionalism
   doc.text("FORTIS", margin, 18);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.text("Institutional Compliance Infrastructure", margin, 25);
-  doc.text(`Generated: ${now}`, margin, 31);
-  doc.text(`Wallet: ${walletAddress}`, pageWidth - margin, 31, { align: "right" });
+  doc.setTextColor(180, 180, 180);
+  doc.text("Institutional-Grade Yield & Compliance Infrastructure", margin, 25);
+  doc.text(`Report Date: ${now}`, margin, 31);
+  doc.text(`Issuer Wallet: ${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`, pageWidth - margin, 31, { align: "right" });
 
-  y = 50;
+  curY = 50;
 
   // Title
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(30, 30, 30);
-  doc.text(data.title, margin, y);
-  y += 7;
+  doc.text(data.title, margin, curY);
+  curY += 7;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
-  doc.text(data.subtitle, margin, y);
-  y += 4;
+  doc.text(data.subtitle, margin, curY);
+  curY += 4;
 
   // Divider
-  doc.setDrawColor(212, 175, 55);
-  doc.setLineWidth(0.5);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 10;
+  doc.setDrawColor(184, 134, 11);
+  doc.setLineWidth(0.4);
+  doc.line(margin, curY, pageWidth - margin, curY);
+  curY += 10;
 
   // Sections
   for (const section of data.sections) {
@@ -252,8 +254,8 @@ export function generateReport({ type, walletAddress, date }: ReportOptions): vo
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(30, 30, 30);
-    doc.text(section.heading, margin, y);
-    y += 3;
+    doc.text(section.heading, margin, curY);
+    curY += 3;
 
     const tableRows = section.rows.map((row) =>
       row.map((cell) =>
@@ -262,7 +264,7 @@ export function generateReport({ type, walletAddress, date }: ReportOptions): vo
     );
 
     autoTable(doc, {
-      startY: y,
+      startY: curY,
       head: [],
       body: tableRows,
       theme: "plain",
@@ -278,11 +280,11 @@ export function generateReport({ type, walletAddress, date }: ReportOptions): vo
         0: { fontStyle: "bold", cellWidth: 55, textColor: [30, 30, 30] },
       },
       didDrawPage: () => {
-        y = 20;
+        curY = 20;
       },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 8;
+    curY = (doc as any).lastAutoTable.finalY + 8;
   }
 
   // Transfer table (Travel Rule only)
@@ -293,11 +295,11 @@ export function generateReport({ type, walletAddress, date }: ReportOptions): vo
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(30, 30, 30);
-    doc.text(tt.heading, margin, y);
-    y += 3;
+    doc.text(tt.heading, margin, curY);
+    curY += 3;
 
     autoTable(doc, {
-      startY: y,
+      startY: curY,
       head: [tt.headers],
       body: tt.rows,
       theme: "grid",
@@ -310,20 +312,20 @@ export function generateReport({ type, walletAddress, date }: ReportOptions): vo
       },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 8;
+    curY = (doc as any).lastAutoTable.finalY + 8;
   }
 
   // Footer disclaimer
   addPageIfNeeded(25);
   doc.setDrawColor(200, 200, 200);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 6;
+  doc.line(margin, curY, pageWidth - margin, curY);
+  curY += 6;
 
   doc.setFont("helvetica", "italic");
   doc.setFontSize(7);
   doc.setTextColor(140, 140, 140);
   const footerLines = doc.splitTextToSize(data.footer, pageWidth - margin * 2);
-  doc.text(footerLines, margin, y);
+  doc.text(footerLines, margin, curY);
 
   // Save
   const filename = `Fortis_${type.replace(/\s/g, "_")}_${now}.pdf`;

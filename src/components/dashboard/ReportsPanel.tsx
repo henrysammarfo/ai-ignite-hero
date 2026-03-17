@@ -1,17 +1,5 @@
 import { useState } from "react";
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Loader2, 
-  Wallet, 
-  X, 
-  ShieldCheck, 
-  AlertOctagon, 
-  UserCheck, 
-  Send, 
-  FileJson 
-} from "lucide-react";
+import { FileText, Download, Eye, Loader2, Wallet, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle } from "./ThemedDialog";
@@ -19,7 +7,6 @@ import { useWallet } from "@/contexts/WalletContext";
 import { generateReport, getReportPreviewData } from "@/lib/generateReport";
 import { toast } from "sonner";
 import WalletConnectModal from "./WalletConnectModal";
-import { useCompliance } from "@/contexts/ComplianceContext";
 
 type ReportType = "FINMA" | "AML" | "Travel Rule" | "Performance";
 
@@ -39,27 +26,10 @@ interface PreviewData {
 
 const ReportsPanel = () => {
   const { connected, address } = useWallet();
-  const { auditTrail } = useCompliance();
   const [generating, setGenerating] = useState<number | null>(null);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [previewReport, setPreviewReport] = useState<typeof reports[0] | null>(null);
-
-  const totalLogs = auditTrail.length;
-  const blockedCount = auditTrail.filter(l => l.blocked).length;
-  const kycApprovedCount = auditTrail.filter(l => l.metadata?.kyc_status === 'approved').length;
-  const travelRuleCount = auditTrail.filter(l => l.metadata?.travel_rule_hash).length;
-
-  const exportToJson = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(auditTrail, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `fortis_audit_report_${new Date().toISOString().slice(0,10)}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-    toast.success("Audit report exported as JSON");
-  };
 
   const handleDownload = async (report: typeof reports[0]) => {
     if (!connected || !address) {
@@ -114,62 +84,16 @@ const ReportsPanel = () => {
             FINMA-compliant PDF reports with full compliance data
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="gap-2 rounded-lg font-sans text-sm"
-            onClick={exportToJson}
-          >
-            <FileJson size={14} />
-            Export JSON
-          </Button>
-          <Button
-            variant="default"
-            className="gap-2 rounded-lg font-sans text-sm shadow-sm"
-            onClick={handleGenerateNew}
-            disabled={generating === -1}
-          >
-            {generating === -1 ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
-            Generate PDF
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          className="gap-2 rounded-lg font-sans text-sm"
+          onClick={handleGenerateNew}
+          disabled={generating === -1}
+        >
+          {generating === -1 ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+          Generate New
+        </Button>
       </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Total Transactions", value: totalLogs, icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
-          { label: "Blocked Actions", value: blockedCount, icon: AlertOctagon, color: "text-destructive", bg: "bg-destructive/10" },
-          { label: "KYC Approved", value: kycApprovedCount, icon: UserCheck, color: "text-primary", bg: "bg-primary/10" },
-          { label: "Travel Rule", value: travelRuleCount, icon: Send, color: "text-amber-500", bg: "bg-amber-500/10" },
-        ].map((stat, i) => (
-          <Card key={i} className="shadow-sm border-border/50">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center shrink-0`}>
-                <stat.icon size={16} className={stat.color} />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">{stat.label}</p>
-                <p className="text-lg font-sans font-bold text-foreground">{stat.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="shadow-sm border-primary/20 bg-primary/5">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="text-primary shrink-0 mt-0.5" size={18} />
-            <div>
-              <p className="text-sm font-sans font-bold text-foreground">Regulator Report: Last 30 Days</p>
-              <p className="text-xs text-muted-foreground font-sans mt-0.5">
-                Summary: {totalLogs} events logged. {blockedCount} blocked for OFAC/Sanctions. {kycApprovedCount} identity verifications synced. {travelRuleCount} Travel Rule transmissions broadcasted via IVMS101.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {!connected && (
         <div className="rounded-lg bg-muted/50 border border-border p-4 flex items-center gap-3">
@@ -223,6 +147,7 @@ const ReportsPanel = () => {
         ))}
       </div>
 
+      {/* Report Preview Modal */}
       <Dialog open={!!previewData} onOpenChange={(open) => { if (!open) { setPreviewData(null); setPreviewReport(null); } }}>
         <ThemedDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>

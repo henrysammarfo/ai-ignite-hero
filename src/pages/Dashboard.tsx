@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { WalletProvider } from "@/contexts/WalletContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWallet } from "@/contexts/WalletContext";
 import { DashboardThemeProvider, useDashboardTheme } from "@/contexts/DashboardThemeContext";
 import { ComplianceProvider } from "@/contexts/ComplianceContext";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -25,6 +26,8 @@ const panels: Record<string, () => JSX.Element> = {
 };
 
 const DashboardContent = () => {
+  const { address: walletAddress } = useWallet();
+  const { userEmail } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const { themeClass } = useDashboardTheme();
   const ActivePanel = panels[activeTab] || OverviewPanel;
@@ -41,13 +44,11 @@ const DashboardContent = () => {
 };
 
 const Dashboard = () => (
-  <WalletProvider>
-    <DashboardThemeProvider>
-      <ComplianceProvider>
-        <DashboardContent />
-      </ComplianceProvider>
-    </DashboardThemeProvider>
-  </WalletProvider>
+  <DashboardThemeProvider>
+    <ComplianceProvider>
+      <DashboardContent />
+    </ComplianceProvider>
+  </DashboardThemeProvider>
 );
 
 export default Dashboard;

@@ -1,47 +1,94 @@
 import { useState } from "react";
-import { ArrowDownToLine, Info, CheckCircle2, Lock, Wallet, Shield, ChevronDown, TrendingUp, AlertTriangle } from "lucide-react";
+import { ArrowDownToLine, Info, CheckCircle2, Lock, Wallet, Shield, ChevronDown, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWallet } from "@/contexts/WalletContext";
+import { useConnection } from "@solana/wallet-adapter-react";
+import * as anchor from "@coral-xyz/anchor";
 import { useCompliance } from "@/contexts/ComplianceContext";
-import WalletConnectModal from "./WalletConnectModal";
+import { getProgram, USDC_MINT } from "@/lib/solana";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { useWallet as useSolanaWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import { toast } from "sonner";
-import { Copy, Loader2, XCircle } from "lucide-react";
+import { useEffect } from "react";
 
-const vaultOptions = [
-  { id: "v1", name: "Treasury Reserve", apy: 6.8, minDeposit: 10000, lockDays: 30 },
-  { id: "v2", name: "Yield Pool Alpha", apy: 9.4, minDeposit: 25000, lockDays: 60 },
-  { id: "v3", name: "Fortis USDC Vault", apy: 8.2, minDeposit: 10000, lockDays: 30 },
-];
+const getDepositorPDA = (vault: PublicKey, depositor: PublicKey) => {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("depositor"), vault.toBuffer(), depositor.toBuffer()],
+    new PublicKey("2QBypCZ2Aru2aiyvixQ8AWrpuynFnZMVEDUySriWBw9m") // Compliance Vault Program ID
+  );
+  return pda;
+};
+
+interface VaultOption {
+  id: string;
+  name: string;
+  apy: number;
+  minDeposit: number;
+  lockDays: number;
+}
 
 const DepositPanel = () => {
-  const { connected, address } = useWallet();
-  const { isFullyCompliant } = useCompliance();
+  const { connected, publicKey } = useWallet();
+  const { wallet } = useSolanaWallet();
+  const { connection } = useConnection();
+  const { isFullyCompliant, steps } = useCompliance();
+
+  const [vaults, setVaults] = useState<VaultOption[]>([]);
+  const [loadingVaults, setLoadingVaults] = useState(true);
+
   const [amount, setAmount] = useState("");
-  const [selectedVault, setSelectedVault] = useState(vaultOptions[2].id);
+  const [selectedVault, setSelectedVault] = useState<string>("");
   const [step, setStep] = useState<"form" | "review" | "done">("form");
   const [walletModalOpen, setWalletModalOpen] = useState(false);
-  
-  // Compliance states
-  const { 
-    runPreflightDeposit, 
-    isCheckingCompliance, 
-    preflightResult,
-    submitTravelRule,
-    travelRuleHash 
-  } = useCompliance();
 
-  const [trForm, setTrForm] = useState({
-    originatorFirstName: "",
-    originatorLastName: "",
-    beneficiaryFirstName: "",
-    beneficiaryLastName: ""
-  });
   const locked = !isFullyCompliant;
   const needsWallet = !connected;
-  const vault = vaultOptions.find(v => v.id === selectedVault)!;
+
+  const vault = vaults.find(v => v.id === selectedVault);
+
+  const provider = connected && wallet
+    ? new anchor.AnchorProvider(connection, wallet.adapter as any, { preflightCommitment: "processed" })
+    : null;
+
+  useEffect(() => {
+    const fetchVaults = async () => {
+      if (!provider) {
+        setVaults([]);
+        setLoadingVaults(false);
+        return;
+      }
+
+      try {
+        setLoadingVaults(true);
+        const program = getProgram(provider);
+        const onChainVaults = await program.account.vaultState.all();
+
+        const mappedVaults: VaultOption[] = onChainVaults.map((v: any, index: number) => {
+          return {
+            id: v.publicKey.toString(),
+            name: `Vault #${v.publicKey.toString().slice(0, 4)}`,
+            apy: parseFloat((5 + Math.random() * 5).toFixed(1)), // Mock APY for UI sake, real APY requires offchain worker or strategy state
+            minDeposit: index % 2 === 0 ? 1000 : 5000, // Derived mock settings based on real PDAs
+            lockDays: index % 2 === 0 ? 30 : 90,
+          };
+        });
+
+        setVaults(mappedVaults);
+        if (mappedVaults.length > 0) setSelectedVault(mappedVaults[0].id);
+      } catch (err) {
+        console.error("Failed to load generic vaults:", err);
+      } finally {
+        setLoadingVaults(false);
+      }
+    };
+
+    fetchVaults();
+  }, [connected, publicKey]);
+
 
   const handleContinue = () => {
     if (!amount || parseFloat(amount) < vault.minDeposit) {
@@ -51,33 +98,54 @@ const DepositPanel = () => {
     setStep("review");
   };
 
-  const handlePreflight = async () => {
-    if (!address) return;
-    await runPreflightDeposit(address, parseFloat(amount));
-  };
+  const handleConfirm = async () => {
+    if (!publicKey) return;
 
-  const handleSubmitWithTravelRule = async () => {
-    if (!address) return;
     try {
-      // Map to TravelRuleParams structure
-      await submitTravelRule({
-        senderWallet: address,
-        senderFirstName: trForm.originatorFirstName,
-        senderLastName: trForm.originatorLastName,
-        receiverWallet: "FtsVault" + address.slice(0, 10), // Mock receiver
-        receiverFirstName: trForm.beneficiaryFirstName,
-        receiverLastName: trForm.beneficiaryLastName,
-        amount: parseFloat(amount)
-      } as any);
-      handleConfirm();
-    } catch (err) {
-      toast.error("Travel Rule submission failed");
-    }
-  };
+      toast.loading("Compliance verification & depositing...", { id: "deposit" });
 
-  const handleConfirm = () => {
-    setStep("done");
-    toast.success(`Deposited $${parseFloat(amount).toLocaleString()} USDC into ${vault.name}`);
+      // 1. Get KYC (Civic Pass) Token
+      const kycStep = steps.find(s => s.id === 'kyc');
+      if (kycStep?.status !== 'verified') {
+        toast.error("KYC verification required", { id: "deposit" });
+        return;
+      }
+
+      // 2. Execute Anchor Transaction
+      if (!vault) return;
+      const amountBN = new anchor.BN(parseFloat(amount) * 1e6);
+      const sofHash = Array.from(Buffer.alloc(32)); // Placeholder since we lack full kyc hex hash matching
+
+      const program = getProgram(provider!);
+      const userKey = new PublicKey(publicKey);
+      const vaultKey = new PublicKey(vault.id);
+      const depositorPDA = getDepositorPDA(vaultKey, userKey);
+
+      const vaultUsdc = getAssociatedTokenAddressSync(USDC_MINT, vaultKey, true);
+      const depositorUsdc = getAssociatedTokenAddressSync(USDC_MINT, userKey);
+
+      await program.methods
+        .deposit(amountBN, sofHash)
+        .accounts({
+          depositor: userKey,
+          vaultState: vaultKey,
+          depositorAccount: depositorPDA,
+          gatewayToken: userKey, // Using user as placeholder for gateway if not active in demo
+          depositorUsdc: depositorUsdc,
+          vaultUsdc: vaultUsdc,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        } as any)
+        .rpc();
+
+      setTimeout(() => {
+        setStep("done");
+        toast.success(`Deposited $${parseFloat(amount).toLocaleString()} USDC into ${vault.name}`, { id: "deposit" });
+      }, 2500);
+
+    } catch (err: any) {
+      toast.error(`Deposit failed: ${err.message}`, { id: "deposit" });
+    }
   };
 
   const handleReset = () => {
@@ -99,10 +167,9 @@ const DepositPanel = () => {
           const completed = step === "done" || (step === "review" && i < 2) || (step === "form" && i < 0);
           return (
             <div key={label} className="flex items-center gap-2 flex-1">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-sans font-bold shrink-0 ${
-                step === "done" ? "bg-primary text-primary-foreground" :
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-sans font-bold shrink-0 ${step === "done" ? "bg-primary text-primary-foreground" :
                 i <= (step === "review" ? 2 : 1) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}>
+                }`}>
                 {step === "done" ? "✓" : i + 1}
               </div>
               <span className="text-xs font-sans text-muted-foreground hidden sm:inline">{label}</span>
@@ -120,12 +187,12 @@ const DepositPanel = () => {
               <CardTitle className="text-base font-sans font-semibold">Select Vault</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Select value={selectedVault} onValueChange={setSelectedVault}>
+              <Select value={selectedVault} onValueChange={setSelectedVault} disabled={loadingVaults || vaults.length === 0}>
                 <SelectTrigger className="font-sans">
-                  <SelectValue />
+                  <SelectValue placeholder={loadingVaults ? "Loading Vaults..." : "Select a Devnet Vault"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {vaultOptions.map(v => (
+                  {vaults.map(v => (
                     <SelectItem key={v.id} value={v.id} className="font-sans">
                       <div className="flex items-center gap-2">
                         <span>{v.name}</span>
@@ -136,22 +203,24 @@ const DepositPanel = () => {
                 </SelectContent>
               </Select>
 
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: "APY", value: `${vault.apy}%`, icon: TrendingUp, highlight: true },
-                  { label: "Min Deposit", value: `$${vault.minDeposit.toLocaleString()}`, icon: ArrowDownToLine },
-                  { label: "Lock Period", value: `${vault.lockDays} days`, icon: Lock },
-                  { label: "Compliance", value: "KYC + AML", icon: Shield },
-                ].map(item => (
-                  <div key={item.label} className="rounded-lg bg-muted p-3 space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <item.icon size={12} className="text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">{item.label}</span>
+              {vault && (
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "APY", value: `${vault.apy}%`, icon: TrendingUp, highlight: true },
+                    { label: "Min Deposit", value: `$${vault.minDeposit.toLocaleString()}`, icon: ArrowDownToLine },
+                    { label: "Lock Period", value: `${vault.lockDays} days`, icon: Lock },
+                    { label: "Compliance", value: "KYC + AML", icon: Shield },
+                  ].map(item => (
+                    <div key={item.label} className="rounded-lg bg-muted p-3 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <item.icon size={12} className="text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">{item.label}</span>
+                      </div>
+                      <p className={`text-sm font-sans font-bold ${item.highlight ? "text-primary" : "text-foreground"}`}>{item.value}</p>
                     </div>
-                    <p className={`text-sm font-sans font-bold ${item.highlight ? "text-primary" : "text-foreground"}`}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -169,12 +238,12 @@ const DepositPanel = () => {
                 <div className="relative">
                   <Input
                     type="number"
-                    placeholder={vault.minDeposit.toLocaleString()}
+                    placeholder={vault ? vault.minDeposit.toLocaleString() : "..."}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="font-sans text-lg pr-16"
-                    min={vault.minDeposit}
-                    disabled={needsWallet}
+                    min={vault ? vault.minDeposit : 0}
+                    disabled={needsWallet || !vault}
                   />
                   <button
                     onClick={() => setAmount("250000")}
@@ -247,131 +316,12 @@ const DepositPanel = () => {
                 </div>
               ))}
             </div>
-            <div className="space-y-3">
-              {!preflightResult && !isCheckingCompliance && (
-                <Button onClick={handlePreflight} className="w-full font-sans text-sm gap-2" size="lg">
-                  <Shield size={16} />
-                  Run Compliance Check
-                </Button>
-              )}
-
-              {isCheckingCompliance && (
-                <Button disabled className="w-full font-sans text-sm gap-2" size="lg">
-                  <Loader2 size={16} className="animate-spin" />
-                  Verifying Compliance...
-                </Button>
-              )}
-
-              {preflightResult && !isCheckingCompliance && (
-                <div className="space-y-4">
-                  {preflightResult.allowed && !preflightResult.travelRuleRequired && (
-                    <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 flex items-center gap-2">
-                      <CheckCircle2 size={16} className="text-primary" />
-                      <p className="text-xs text-primary font-sans font-medium">
-                        ✓ All compliance checks passed — proceed with deposit
-                      </p>
-                    </div>
-                  )}
-
-                  {!preflightResult.allowed && (
-                    <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 flex items-start gap-2">
-                      <XCircle size={16} className="text-destructive mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-xs text-destructive font-sans font-bold">✗ Transaction Blocked</p>
-                        <p className="text-[10px] text-destructive font-sans mt-0.5">{preflightResult.blockedReason}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {preflightResult.allowed && preflightResult.travelRuleRequired && (
-                    <div className="space-y-4">
-                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex items-start gap-2">
-                        <AlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-xs text-amber-500 font-sans font-bold">⚠️ Travel Rule Information Required</p>
-                          <p className="text-[10px] text-amber-500 font-sans mt-0.5">
-                            Transactions above $1,000 require additional identification data under IVMS101 standards.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <label className="text-[10px] text-muted-foreground uppercase">Originator First Name</label>
-                          <Input 
-                            value={trForm.originatorFirstName}
-                            onChange={e => setTrForm(prev => ({ ...prev, originatorFirstName: e.target.value }))}
-                            className="text-xs h-8"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] text-muted-foreground uppercase">Originator Last Name</label>
-                          <Input 
-                            value={trForm.originatorLastName}
-                            onChange={e => setTrForm(prev => ({ ...prev, originatorLastName: e.target.value }))}
-                            className="text-xs h-8"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] text-muted-foreground uppercase">Beneficiary First Name</label>
-                          <Input 
-                            value={trForm.beneficiaryFirstName}
-                            onChange={e => setTrForm(prev => ({ ...prev, beneficiaryFirstName: e.target.value }))}
-                            className="text-xs h-8"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] text-muted-foreground uppercase">Beneficiary Last Name</label>
-                          <Input 
-                            value={trForm.beneficiaryLastName}
-                            onChange={e => setTrForm(prev => ({ ...prev, beneficiaryLastName: e.target.value }))}
-                            className="text-xs h-8"
-                          />
-                        </div>
-                      </div>
-
-                      {travelRuleHash && (
-                        <div className="rounded-lg bg-muted p-2 flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-[9px] text-muted-foreground uppercase">Travel Rule Reference</p>
-                            <p className="text-[10px] font-mono text-foreground truncate">{travelRuleHash}</p>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                            navigator.clipboard.writeText(travelRuleHash);
-                            toast.success("Hash copied");
-                          }}>
-                            <Copy size={10} />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <Button variant="outline" onClick={() => setStep("form")} className="flex-1 font-sans text-sm">Back</Button>
-                
-                {preflightResult?.allowed && preflightResult.travelRuleRequired ? (
-                  <Button 
-                    onClick={handleSubmitWithTravelRule} 
-                    className="flex-1 font-sans text-sm gap-1.5"
-                    disabled={!trForm.originatorFirstName || !trForm.originatorLastName || !trForm.beneficiaryFirstName || !trForm.beneficiaryLastName || isCheckingCompliance}
-                  >
-                    {isCheckingCompliance ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
-                    Submit & Confirm
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleConfirm} 
-                    className="flex-1 font-sans text-sm gap-1.5" 
-                    disabled={!preflightResult?.allowed || isCheckingCompliance}
-                  >
-                    <Shield size={14} />
-                    Confirm Deposit
-                  </Button>
-                )}
-              </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep("form")} className="flex-1 font-sans text-sm">Back</Button>
+              <Button onClick={handleConfirm} className="flex-1 font-sans text-sm gap-1.5">
+                <Shield size={14} />
+                Confirm Deposit
+              </Button>
             </div>
           </CardContent>
         </Card>
