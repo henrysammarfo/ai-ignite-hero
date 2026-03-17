@@ -27,7 +27,6 @@ const Login = () => {
   useEffect(() => {
     // If we're authenticated and auth state has stopped loading, go to dashboard
     if (!authLoading && isAuthenticated) {
-      console.log("Authenticated, redirecting to dashboard...");
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
