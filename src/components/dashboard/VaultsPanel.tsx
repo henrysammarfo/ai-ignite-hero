@@ -251,8 +251,6 @@ const VaultsPanel = () => {
       setShowCreate(false);
     }
   };
-  };
-
 
   const handleDeposit = () => {
     if (!depositVault) return;
