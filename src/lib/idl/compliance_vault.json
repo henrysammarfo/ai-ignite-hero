@@ -79,12 +79,6 @@
           }
         },
         {
-          "name": "gateway_token",
-          "docs": [
-            "Civic Pass token account — must be valid for depositor to proceed"
-          ]
-        },
-        {
           "name": "depositor_usdc",
           "writable": true
         },
@@ -114,6 +108,91 @@
               32
             ]
           }
+        }
+      ]
+    },
+    {
+      "name": "verifyUser",
+      "discriminator": [
+        125,
+        185,
+        210,
+        191,
+        205,
+        224,
+        245,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_state.authority",
+                "account": "VaultState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "user_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_state"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "is_verified",
+          "type": "bool"
         }
       ]
     },

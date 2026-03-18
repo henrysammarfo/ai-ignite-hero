@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-compliance_vault = "2QBypCZ2Aru2aiyvixQ8AWrpuynFnZMVEDUySriWBw9m"
+compliance_vault = "8GQ2bqdrcBSxUViinyHMKVnozCzimq76TQrcmLa5H9u8"
 
 [registry]
 url = "https://anchor.projectserum.com"

@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
-use solana_gateway::Gateway;
 use crate::{state::*, errors::VaultError, DepositEvent};
 
 #[derive(Accounts)]
@@ -25,10 +24,6 @@ pub struct Deposit<'info> {
     )]
     pub depositor_account: Account<'info, DepositorAccount>,
 
-    /// Civic Pass token account — must be valid for depositor to proceed
-    /// CHECK: Verified via Gateway::verify_gateway_token_account_info
-    pub gateway_token: UncheckedAccount<'info>,
-
     #[account(mut, constraint = depositor_usdc.owner == depositor.key())]
     pub depositor_usdc: Account<'info, TokenAccount>,
 
@@ -40,14 +35,8 @@ pub struct Deposit<'info> {
 }
 
 pub fn handler(ctx: Context<Deposit>, amount: u64, source_of_funds_hash: [u8; 32]) -> Result<()> {
-    // 1. Verify Civic Pass (KYC)
-    let gatekeeper_network = ctx.accounts.vault_state.authority; // Using admin as gatekeeper for hackathon demo
-    Gateway::verify_gateway_token_account_info(
-        &ctx.accounts.gateway_token.to_account_info(),
-        &ctx.accounts.depositor.key(),
-        &gatekeeper_network,
-        None,
-    ).map_err(|_| VaultError::KYCNotVerified)?;
+    // 1. Verify custom compliance (M2 Pillar 1)
+    require!(ctx.accounts.depositor_account.kyc_verified, VaultError::KYCNotVerified);
 
     // 2. Transfer USDC using checked math
     let cpi_ctx = CpiContext::new(

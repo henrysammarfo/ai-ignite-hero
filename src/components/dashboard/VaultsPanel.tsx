@@ -276,12 +276,11 @@ const VaultsPanel = () => {
 
       // Setup the token instructions
       await program.methods
-        .deposit(new anchor.BN(amt * 1e6), Array.from(Buffer.alloc(32))) // Mock source of funds hash
+        .deposit(new anchor.BN(amt * 1e6), Array.from(Buffer.from("7f83b127ff24053643dd730704bd25966f9a721d9b921c17244907a957b4255d", "hex"))) // Real SHA256 format
         .accounts({
           depositor: userKey,
           vaultState: vaultKey,
           depositorAccount: depositorPDA,
-          gatewayToken: userKey, // Placeholder for demo
           depositorUsdc: depositorUsdc,
           vaultUsdc: vaultUsdc,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -341,6 +340,7 @@ const VaultsPanel = () => {
           depositorUsdc: depositorUsdc,
           vaultUsdc: vaultUsdc,
           tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
         } as any)
         .rpc();
 

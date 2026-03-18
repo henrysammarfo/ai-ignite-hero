@@ -6,7 +6,7 @@ pub mod errors;
 
 use instructions::*;
 
-declare_id!("2QBypCZ2Aru2aiyvixQ8AWrpuynFnZMVEDUySriWBw9m");
+declare_id!("8GQ2bqdrcBSxUViinyHMKVnozCzimq76TQrcmLa5H9u8");
 
 #[program]
 pub mod compliance_vault {
@@ -34,6 +34,14 @@ pub mod compliance_vault {
 
     pub fn update_whitelist(ctx: Context<UpdateWhitelist>, strategy: Pubkey, allow: bool) -> Result<()> {
         instructions::whitelist::handler(ctx, strategy, allow)
+    }
+
+    pub fn close_vault(ctx: Context<CloseVault>) -> Result<()> {
+        instructions::close::handler(ctx)
+    }
+
+    pub fn verify_user(ctx: Context<VerifyUser>, is_verified: bool) -> Result<()> {
+        instructions::verify::handler(ctx, is_verified)
     }
 }
 

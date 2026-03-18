@@ -16,4 +16,6 @@ pub enum VaultError {
     MissingSourceOfFunds,
     #[msg("Unauthorized signer")]
     UnauthorizedSigner,
+    #[msg("Vault must be empty before closing")]
+    VaultNotEmpty,
 }

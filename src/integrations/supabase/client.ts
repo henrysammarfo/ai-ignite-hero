@@ -76,7 +76,7 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
             data: {
               status: "verified",
               verification: {
-                hash: "0x" + Math.random().toString(16).slice(2),
+                hash: body.stepId === 'sof' ? "7f83b127ff24053643dd730704bd25966f9a721d9b921c17244907a957b4255d" : "0x" + Math.random().toString(16).slice(2),
                 timestamp: new Date().toISOString(),
                 expiresAt: new Date(Date.now() + 31536000000).toISOString(), // 1 year
                 riskScore: "Low",
