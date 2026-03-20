@@ -10,7 +10,8 @@ import * as anchor from "@coral-xyz/anchor";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
 import WalletConnectModal from "./WalletConnectModal";
-import { PROGRAM_ID, getVaultPDA, getDepositorPDA, getProgram, USDC_MINT } from "@/lib/solana";
+import { PROGRAM_ID, getVaultPDA, getDepositorPDA, getProgram, USDC_MINT, FUSX_MINT, TOKEN_DISPLAY_NAMES } from "@/lib/solana";
+
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect } from "react";
@@ -149,7 +150,7 @@ const VaultsPanel = () => {
         const defaults = strategyDefaults[tag];
         return {
           id: v.publicKey.toString(),
-          name: `Vault #${v.publicKey.toString().slice(0, 4)}`,
+          name: TOKEN_DISPLAY_NAMES[FUSX_MINT.toBase58()] || `Vault #${v.publicKey.toString().slice(0, 4)}`,
           tag,
           balance: v.account.totalAum.toNumber() / 1e6, // Assuming 6 decimals for USDC
           apy: parseFloat((5 + Math.random() * 5).toFixed(1)), // Mock APY for now
