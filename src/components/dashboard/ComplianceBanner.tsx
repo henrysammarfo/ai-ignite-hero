@@ -56,22 +56,15 @@ const ComplianceBanner = () => {
                   }
                 </p>
                 {complianceStatus && (
-                  <div className="flex gap-1.5 flex-wrap">
+                  <div className="flex gap-1.5">
                     <StatusBadge status={complianceStatus.kycStatus} label={`KYC: ${complianceStatus.kycStatus}`} />
                     <StatusBadge status={complianceStatus.isSanctioned ? 'blocked' : 'clear'} label={complianceStatus.isSanctioned ? "OFAC: Blocked" : "OFAC: Clear"} />
-                    <div className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-sans font-medium ring-1 ring-inset bg-primary/5 text-primary ring-primary/20">
-                      Squads Grid — Programmable Non-Custodial Account
-                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-2 items-end">
-             <a href="https://explorer.solana.com/address/BbqT...mock?cluster=devnet" target="_blank" className="text-[10px] text-primary hover:underline font-mono bg-muted px-2 py-0.5 rounded border border-border">
-                Grid: BbqT...mock ↗
-             </a>
-             {!isFullyCompliant && (
+          {!isFullyCompliant && (
             <Button
               size="sm"
               variant="outline"
@@ -87,7 +80,6 @@ const ComplianceBanner = () => {
               Verify All
             </Button>
           )}
-          </div>
         </div>
 
         {/* Progress bar */}

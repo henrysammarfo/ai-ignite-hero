@@ -1,20 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { motion } from "motion/react";
-import { TrendingUp, Activity, RefreshCw, ArrowRightLeft, Lock, Unlock, Zap, ShieldAlert } from "lucide-react";
-import ReconciliationOracle from "./ReconciliationOracle";
+import { motion, AnimatePresence } from "motion/react";
+import { TrendingUp, Activity, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { Connection, PublicKey, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 import { PythHttpClient, getPythProgramKeyForCluster } from "@pythnetwork/client";
 import { toast } from "sonner";
-import { SolsticeService } from "@/services/SolsticeService";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FUSX_MINT, TOKEN_DISPLAY_NAMES, INSTITUTIONAL_VAULT_PDA } from "@/lib/solana";
-
 
 const allApyData = [
   { week: "Feb 1", apy: 7.42 },
@@ -26,6 +18,15 @@ const allApyData = [
   { week: "Mar 14", apy: 8.42 },
 ];
 
+const timeRanges = [
+  { label: "1M", points: 4 },
+  { label: "3M", points: 10 },
+  { label: "6M", points: 19 },
+  { label: "1Y", points: 39 },
+] as const;
+
+type TimeRange = typeof timeRanges[number]["label"];
+
 const chartConfig = {
   apy: {
     label: "APY %",
@@ -33,18 +34,18 @@ const chartConfig = {
   },
 };
 
+const yieldHistory = [
+  { date: "Oct 12, 2023", amount: "+$4,250.00", apy: "7.84%", source: "Kamino Strategy" },
+  { date: "Nov 12, 2023", amount: "+$5,120.00", apy: "8.12%", source: "Kamino Strategy" },
+  { date: "Dec 12, 2023", amount: "+$6,480.00", apy: "8.24%", source: "Drift Protocol" },
+  { date: "Jan 12, 2024", amount: "+$7,910.00", apy: "8.39%", source: "Multi-Strategy" },
+  { date: "Feb 12, 2024", amount: "+$8,560.00", apy: "8.42%", source: "Multi-Strategy" },
+];
+
 const YieldPanel = () => {
+  const [range, setRange] = useState<TimeRange>("3M");
   const [usdcPrice, setUsdcPrice] = useState<number | null>(null);
   const [loadingOracle, setLoadingOracle] = useState(true);
-  const { wallet, publicKey, sendTransaction } = useWallet();
-  const connection = new Connection("https://api.devnet.solana.com", "confirmed");
-
-  // Transaction States
-  const [mintAmount, setMintAmount] = useState("");
-  const [lockAmount, setLockAmount] = useState("");
-  const [unlockAmount, setUnlockAmount] = useState("");
-  const [redeemAmount, setRedeemAmount] = useState("");
-  const [isLoadingTx, setIsLoadingTx] = useState(false);
 
   // Pyth USDC/USD Devnet Feed
   const USDC_FEED = "5SSkXsEKQepHHAewytB3SusrZ65ndq6uQQ8bbT396mAS";
@@ -52,84 +53,34 @@ const YieldPanel = () => {
   useEffect(() => {
     const fetchPrice = async () => {
       try {
+        const connection = new Connection("https://api.devnet.solana.com", "confirmed");
         const pythClient = new PythHttpClient(connection, getPythProgramKeyForCluster("devnet"));
         const data = await pythClient.getData();
         const price = data.productPrice.get(USDC_FEED);
-        if (price && price.price) setUsdcPrice(price.price);
-        else setUsdcPrice(1.0000);
+
+        if (price && price.price) {
+          console.log("[Yield] Pyth USDC Price Loaded:", price.price);
+          setUsdcPrice(price.price);
+        } else {
+          // Default to 1.0 for USDC if feed is weird
+          setUsdcPrice(1.0000);
+        }
       } catch (err) {
+        console.warn("[Yield] Pyth Oracle error - falling back to 1.0:", err);
         setUsdcPrice(1.0000);
       } finally {
         setLoadingOracle(false);
       }
     };
+
     fetchPrice();
-    const interval = setInterval(fetchPrice, 30000); 
+    const interval = setInterval(fetchPrice, 30000); // Update every 30s
     return () => clearInterval(interval);
   }, []);
 
-  // Generic instruction broadcast runner
-  const broadcastSolsticeInstruction = async (apiCall: Promise<any>, successMsg: string) => {
-    if (!publicKey) return toast.error("Wallet not connected");
-    try {
-      setIsLoadingTx(true);
-      toast.loading("Fetching Solstice payload...", { id: "solstice-tx" });
-      
-      const instruction = await apiCall;
-      
-      toast.loading("Requesting wallet signature...", { id: "solstice-tx" });
-      const tx = new Transaction().add(instruction);
-      
-      // Request latest blockhash
-      const { blockhash } = await connection.getLatestBlockhash();
-      tx.recentBlockhash = blockhash;
-      tx.feePayer = publicKey;
-
-      const signature = await sendTransaction(tx, connection);
-      
-      toast.loading("Confirming transaction block...", { id: "solstice-tx" });
-      await connection.confirmTransaction(signature, "confirmed");
-
-      toast.success(`${successMsg} (TX: ${signature.slice(0, 8)}...)`, { id: "solstice-tx" });
-    } catch (err: any) {
-      console.error(err);
-      toast.error(`Transaction Failed: ${err.message}`, { id: "solstice-tx" });
-    } finally {
-      setIsLoadingTx(false);
-    }
-  };
-
-  const handleMintUSX = () => {
-    if (!mintAmount || !publicKey) return;
-    broadcastSolsticeInstruction(
-      SolsticeService.requestMint(publicKey.toBase58(), parseFloat(mintAmount)),
-      `Successfully requested mint for ${mintAmount} ${TOKEN_DISPLAY_NAMES[FUSX_MINT.toBase58()] || "USX"}!`
-    );
-  };
-
-  const handleLockEUSX = () => {
-    if (!lockAmount || !publicKey) return;
-    broadcastSolsticeInstruction(
-      SolsticeService.lockToYieldVault(publicKey.toBase58(), parseFloat(lockAmount)),
-      `Successfully locked ${lockAmount} USX into YieldVault!`
-    );
-  };
-
-  const handleUnlockEUSX = () => {
-    if (!unlockAmount || !publicKey) return;
-    broadcastSolsticeInstruction(
-      SolsticeService.unlockFromYieldVault(publicKey.toBase58(), parseFloat(unlockAmount)),
-      `Successfully unlocked ${unlockAmount} eUSX!`
-    );
-  };
-
-  const handleRedeemUSX = () => {
-    if (!redeemAmount || !publicKey) return;
-    broadcastSolsticeInstruction(
-      SolsticeService.requestRedeem(publicKey.toBase58(), parseFloat(redeemAmount)),
-      `Successfully requested redemption of ${redeemAmount} USX back to USDC collateral!`
-    );
-  };
+  const chartData = useMemo(() => {
+    return allApyData;
+  }, []);
 
   return (
     <motion.div
@@ -139,136 +90,70 @@ const YieldPanel = () => {
       className="space-y-6"
     >
       <div>
-        <h1 className="text-2xl font-serif font-bold text-foreground">Yield Management</h1>
-        <p className="text-sm text-muted-foreground font-sans mt-1">Interact natively with the Solstice Finance YieldVault protocol.</p>
+        <h1 className="text-2xl font-serif font-bold text-foreground">Yield</h1>
+        <p className="text-sm text-muted-foreground font-sans mt-1">Track your vault earnings and APY performance</p>
       </div>
 
-      <ReconciliationOracle />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Solstice Trade Terminal */}
-        <Card className="shadow-sm border-primary/20 bg-primary/5">
-            <div className="flex items-center justify-between pb-3 border-b border-border/10">
-              <CardTitle className="text-base font-sans font-semibold flex items-center gap-2 text-primary">
-                <Zap size={16} />
-                Solstice Trade Terminal
-              </CardTitle>
-              <a 
-                href={`https://explorer.solana.com/address/${INSTITUTIONAL_VAULT_PDA.toBase58()}?cluster=devnet`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[10px] text-primary hover:underline flex items-center gap-1"
-              >
-                View Proof of Reserves →
-              </a>
-            </div>
-          <CardContent className="p-0">
-            <Tabs defaultValue="mint" className="w-full">
-              <TabsList className="w-full rounded-none border-b border-border/10 bg-transparent p-0">
-                <TabsTrigger value="mint" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/10">Mint</TabsTrigger>
-                <TabsTrigger value="lock" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/10">Lock</TabsTrigger>
-                <TabsTrigger value="unlock" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/10">Unlock</TabsTrigger>
-                <TabsTrigger value="redeem" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/10">Redeem</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="mint" className="p-4 space-y-4 outline-none">
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground uppercase font-sans tracking-wider">Amount (USDC)</label>
-                  <div className="relative">
-                    <Input type="number" placeholder="1,000" value={mintAmount} onChange={e => setMintAmount(e.target.value)} disabled={isLoadingTx} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">USDC → Fortis USX</span>
-                  </div>
-                </div>
-                <Button onClick={handleMintUSX} disabled={!mintAmount || isLoadingTx || !publicKey} className="w-full gap-2">
-                  <ArrowRightLeft size={14} /> Request Mint
-                </Button>
-              </TabsContent>
-
-              <TabsContent value="lock" className="p-4 space-y-4 outline-none">
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground uppercase font-sans tracking-wider">Amount (USX)</label>
-                  <div className="relative">
-                    <Input type="number" placeholder="100" value={lockAmount} onChange={e => setLockAmount(e.target.value)} disabled={isLoadingTx} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">USX → eUSX</span>
-                  </div>
-                </div>
-                <Button onClick={handleLockEUSX} disabled={!lockAmount || isLoadingTx || !publicKey} className="w-full gap-2">
-                  <Lock size={14} /> Lock into YieldVault
-                </Button>
-              </TabsContent>
-
-              <TabsContent value="unlock" className="p-4 space-y-4 outline-none">
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground uppercase font-sans tracking-wider">Amount (eUSX)</label>
-                  <div className="relative">
-                    <Input type="number" placeholder="100" value={unlockAmount} onChange={e => setUnlockAmount(e.target.value)} disabled={isLoadingTx} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">eUSX → USX</span>
-                  </div>
-                </div>
-                <Button onClick={handleUnlockEUSX} disabled={!unlockAmount || isLoadingTx || !publicKey} variant="outline" className="w-full gap-2 border-primary/20 hover:bg-primary/10">
-                  <Unlock size={14} /> Unlock from YieldVault
-                </Button>
-              </TabsContent>
-
-              <TabsContent value="redeem" className="p-4 space-y-4 outline-none">
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground uppercase font-sans tracking-wider">Amount (USX)</label>
-                  <div className="relative">
-                    <Input type="number" placeholder="100" value={redeemAmount} onChange={e => setRedeemAmount(e.target.value)} disabled={isLoadingTx} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">USX → USDC</span>
-                  </div>
-                </div>
-                <Button onClick={handleRedeemUSX} disabled={!redeemAmount || isLoadingTx || !publicKey} className="w-full gap-2" variant="destructive">
-                  <ArrowRightLeft size={14} /> Request Redeem
-                </Button>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-3 h-full">
-          <Card className="shadow-sm flex flex-col justify-center">
-            <CardContent className="p-5 text-center">
-              <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-1">Oracle Price (USDC)</p>
-              <p className="text-2xl font-bold font-sans text-foreground">${usdcPrice?.toFixed(4) || "..."}</p>
-              <p className="text-xs text-muted-foreground font-sans mt-1">Pyth Network</p>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          {
+            label: "Total Earned",
+            value: loadingOracle ? "..." : "$0.00",
+            sub: "Lifetime",
+            highlight: false
+          },
+          {
+            label: "Oracle Price (USDC)",
+            value: loadingOracle ? "..." : `$${usdcPrice?.toFixed(4) || "1.0000"}`,
+            sub: loadingOracle ? "Syncing..." : "Live Pyth Feed",
+            highlight: true
+          },
+          {
+            label: "Estimated APY",
+            value: "8.42%",
+            sub: "Avg. Strategy Yield",
+            highlight: false
+          },
+        ].map((card) => (
+          <Card key={card.label} className="shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider">{card.label}</p>
+                {card.highlight && !loadingOracle && <RefreshCw size={12} className="text-primary animate-spin-slow" />}
+              </div>
+              <p className={`text-2xl font-bold font-sans ${card.highlight ? "text-primary" : "text-foreground"}`}>{card.value}</p>
+              <p className="text-xs text-muted-foreground font-sans mt-1">{card.sub}</p>
             </CardContent>
           </Card>
-          <Card className="shadow-sm flex flex-col justify-center">
-            <CardContent className="p-5 text-center">
-              <p className="text-xs text-muted-foreground font-sans uppercase tracking-wider mb-1">Solstice APY</p>
-              <p className="text-2xl font-bold font-sans text-primary">13.96%</p>
-              <p className="text-xs text-muted-foreground font-sans mt-1">Live Average</p>
-            </CardContent>
-          </Card>
-        </div>
+        ))}
       </div>
-
-      <Card className="shadow-sm border-yellow-500/20 bg-yellow-500/5">
-        <CardContent className="p-4 flex items-start gap-3">
-          <ShieldAlert size={16} className="text-yellow-600 mt-0.5 shrink-0" />
-          <div className="space-y-1">
-            <p className="text-sm font-sans font-medium text-yellow-800 dark:text-yellow-500">End-to-End Environment Live</p>
-            <p className="text-xs font-sans text-yellow-700/80 dark:text-yellow-500/80">
-              The Trade Terminal generates real, signable transactions via the native Solstice Finance API pipeline. 
-              Confirming these prompts will directly broadcast them onto the Solana Devnet blockchain via your connected browser wallet.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* APY Chart */}
       <Card className="shadow-sm">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
             <TrendingUp size={16} className="text-muted-foreground" />
-            Historical Global APY
+            APY Performance
           </CardTitle>
+          <div className="flex gap-1">
+            {timeRanges.map((r) => (
+              <button
+                key={r.label}
+                onClick={() => setRange(r.label)}
+                className={`px-2.5 py-1 text-xs font-sans font-medium rounded-md transition-colors ${range === r.label
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+                  }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[200px] w-full">
-            <AreaChart data={allApyData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+          <ChartContainer config={chartConfig} className="h-[250px] w-full">
+            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="apyGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
@@ -282,6 +167,38 @@ const YieldPanel = () => {
               <Area type="monotone" dataKey="apy" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#apyGradient)" />
             </AreaChart>
           </ChartContainer>
+        </CardContent>
+      </Card>
+
+      {/* Yield History */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
+            <Activity size={16} className="text-muted-foreground" />
+            Payout History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-0">
+            <div className="grid grid-cols-4 text-xs text-muted-foreground font-sans uppercase tracking-wider py-2 border-b border-border">
+              <span>Date</span>
+              <span>Amount</span>
+              <span>APY</span>
+              <span>Source</span>
+            </div>
+            {yieldHistory.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground text-sm font-sans">
+                Yield data will populate once the Devnet strategy contract initializes payouts.
+              </div>
+            ) : yieldHistory.map((row, i) => (
+              <div key={i} className="grid grid-cols-4 text-sm font-sans py-3 border-b border-border last:border-0 items-center">
+                <span className="text-muted-foreground">{row.date}</span>
+                <span className="text-foreground font-medium">{row.amount}</span>
+                <span className="text-primary font-medium">{row.apy}</span>
+                <span className="text-muted-foreground text-xs">{row.source}</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </motion.div>

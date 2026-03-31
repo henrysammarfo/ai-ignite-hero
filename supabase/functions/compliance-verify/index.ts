@@ -14,8 +14,7 @@ const corsHeaders = {
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
-  // Prefer the standard Supabase variable name; fall back to legacy if present.
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SB_SERVICE_ROLE_KEY")!
+  Deno.env.get("SB_SERVICE_ROLE_KEY")!
 );
 
 interface VerificationRequest {
@@ -44,16 +43,12 @@ async function verifyKYC(walletAddress: string): Promise<VerificationResult> {
     body: { action: 'get_status', walletAddress }
   });
 
-  // If KYC service unreachable or no record, require user submission instead of auto-approving
   if (error || !data) {
     return {
-      status: "pending",
+      status: "failed",
       verification: {
-        hash: null,
-        timestamp: null,
-        expiresAt: null,
-        riskScore: null,
-        errorMessage: "KYC record not found. Please upload documents."
+        hash: null, timestamp: null, expiresAt: null, riskScore: null,
+        errorMessage: "Failed to connect to KYC service"
       }
     };
   }
@@ -84,16 +79,12 @@ async function verifyAML(walletAddress: string): Promise<VerificationResult> {
     body: { action: 'screen_address', walletAddress }
   });
 
-  // If AML service unreachable, auto-pass with riskScore 0
   if (error || !data) {
     return {
-      status: "verified",
+      status: "failed",
       verification: {
-        hash: `auto_aml_${crypto.randomUUID().slice(0,8)}`,
-        timestamp: new Date().toISOString(),
-        expiresAt: null,
-        riskScore: "0",
-        errorMessage: null
+        hash: null, timestamp: null, expiresAt: null, riskScore: null,
+        errorMessage: "Failed to connect to AML service"
       }
     };
   }
@@ -124,20 +115,11 @@ async function verifyTravelRule(walletAddress: string): Promise<VerificationResu
     .single();
 
   if (error || !data) {
-    const payloadHash = `auto_travel_${crypto.randomUUID().slice(0,8)}`;
-    await supabase.from('travel_rule_submissions').insert({
-      sender_wallet: walletAddress,
-      payload_hash: payloadHash,
-      created_at: new Date().toISOString()
-    });
     return {
-      status: "verified",
+      status: "pending",
       verification: {
-        hash: payloadHash,
-        timestamp: new Date().toISOString(),
-        expiresAt: null,
-        riskScore: null,
-        errorMessage: null
+        hash: null, timestamp: null, expiresAt: null, riskScore: null,
+        errorMessage: "No Travel Rule submission found for this wallet"
       }
     };
   }
@@ -168,21 +150,11 @@ async function verifySourceOfFunds(walletAddress: string): Promise<VerificationR
     .single();
 
   if (error || !data) {
-    const txSig = `auto_sof_${crypto.randomUUID().slice(0,8)}`;
-    await supabase.from('audit_logs').insert({
-      wallet_address: walletAddress,
-      action: 'sof_verified',
-      tx_signature: txSig,
-      timestamp: new Date().toISOString()
-    });
     return {
-      status: "verified",
+      status: "pending",
       verification: {
-        hash: txSig,
-        timestamp: new Date().toISOString(),
-        expiresAt: null,
-        riskScore: null,
-        errorMessage: null
+        hash: null, timestamp: null, expiresAt: null, riskScore: null,
+        errorMessage: "Source of Funds attestation not found"
       }
     };
   }

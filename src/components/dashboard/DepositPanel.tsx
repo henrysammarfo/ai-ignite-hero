@@ -8,13 +8,20 @@ import { useWallet } from "@/contexts/WalletContext";
 import { useConnection } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
 import { useCompliance } from "@/contexts/ComplianceContext";
-import { getProgram, USDC_MINT, getDepositorPDA, FUSX_MINT, TOKEN_DISPLAY_NAMES } from "@/lib/solana";
-
+import { getProgram, USDC_MINT } from "@/lib/solana";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useWallet as useSolanaWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { toast } from "sonner";
 import { useEffect } from "react";
+
+const getDepositorPDA = (vault: PublicKey, depositor: PublicKey) => {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("depositor"), vault.toBuffer(), depositor.toBuffer()],
+    new PublicKey("2QBypCZ2Aru2aiyvixQ8AWrpuynFnZMVEDUySriWBw9m") // Compliance Vault Program ID
+  );
+  return pda;
+};
 
 interface VaultOption {
   id: string;
@@ -97,7 +104,7 @@ const DepositPanel = () => {
     try {
       toast.loading("Compliance verification & depositing...", { id: "deposit" });
 
-        // 1. Ensure Internal KYC is verified on-chain
+      // 1. Get KYC (Civic Pass) Token
       const kycStep = steps.find(s => s.id === 'kyc');
       if (kycStep?.status !== 'verified') {
         toast.error("KYC verification required", { id: "deposit" });
@@ -117,19 +124,13 @@ const DepositPanel = () => {
       const vaultUsdc = getAssociatedTokenAddressSync(USDC_MINT, vaultKey, true);
       const depositorUsdc = getAssociatedTokenAddressSync(USDC_MINT, userKey);
 
-      // 2a. Verify on-chain KYC flag before attempting deposit
-      const depositorAccount = await program.account.depositorAccount.fetchNullable(depositorPDA);
-      if (!depositorAccount || !depositorAccount.kycVerified) {
-        toast.error("On-chain KYC approval (verify_user) is required before deposit", { id: "deposit" });
-        return;
-      }
-
       await program.methods
         .deposit(amountBN, sofHash)
         .accounts({
           depositor: userKey,
           vaultState: vaultKey,
           depositorAccount: depositorPDA,
+          gatewayToken: userKey, // Using user as placeholder for gateway if not active in demo
           depositorUsdc: depositorUsdc,
           vaultUsdc: vaultUsdc,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -298,7 +299,7 @@ const DepositPanel = () => {
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-muted p-5 text-center">
               <p className="text-3xl font-bold font-sans text-foreground">${parseFloat(amount).toLocaleString()}</p>
-              <p className="text-sm text-muted-foreground font-sans mt-1">USDC → {TOKEN_DISPLAY_NAMES[FUSX_MINT.toBase58()] || "Fortis USX"}</p>
+              <p className="text-sm text-muted-foreground font-sans mt-1">USDC → {vault.name}</p>
             </div>
             <div className="rounded-lg border border-border divide-y divide-border">
               {[

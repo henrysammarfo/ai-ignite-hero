@@ -20,6 +20,7 @@ pub struct Withdraw<'info> {
     )]
     pub depositor_account: Account<'info, DepositorAccount>,
 
+    #[account(mut)]
     pub depositor: Signer<'info>,
 
     #[account(mut, constraint = depositor_usdc.owner == depositor.key())]
@@ -32,16 +33,12 @@ pub struct Withdraw<'info> {
     pub vault_usdc: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-    // 1. Verify custom compliance (M2 Pillar 1)
-    require!(ctx.accounts.depositor_account.kyc_verified, VaultError::KYCNotVerified);
-
     let depositor_account = &mut ctx.accounts.depositor_account;
     
-    // 2. Safety checks
+    // 1. Safety checks
     require!(depositor_account.balance_usdc >= amount, VaultError::WithdrawalExceedsBalance);
 
     // 2. Transfer from Vault PDA to depositor using PDA signer

@@ -10,7 +10,7 @@ describe('SquadsService', () => {
     expect(typeof multisig.getMultisigPda).toBe('function');
   });
 
-  it.skip('SDK isAvailable check should work against devnet', async () => {
+  it('SDK isAvailable check should work against devnet', async () => {
     // We can directly call the static method without hitting a real transaction
     const available = await SquadsService.isAvailable();
     expect(available).toBe(true);
