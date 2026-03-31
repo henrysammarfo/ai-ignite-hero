@@ -16,16 +16,4 @@ pub enum VaultError {
     MissingSourceOfFunds,
     #[msg("Unauthorized signer")]
     UnauthorizedSigner,
-    #[msg("Vault must be empty before closing")]
-    VaultNotEmpty,
-    #[msg("Vault is already paused")]
-    AlreadyPaused,
-    #[msg("Vault is not currently paused")]
-    NotPaused,
-    #[msg("External instruction payload invalid")]
-    InvalidExternalInstruction,
-    #[msg("External program not allowed")]
-    ExternalProgramNotAllowed,
-    #[msg("External CPI failed")]
-    ExternalCpiFailed,
 }

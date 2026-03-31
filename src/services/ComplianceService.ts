@@ -2,7 +2,6 @@ import { KycService } from './KycService'
 import { ScreeningService } from './ScreeningService'
 import { TravelRuleService, TRAVEL_RULE_THRESHOLD } from './TravelRuleService'
 import { supabase } from '../integrations/supabase/client'
-import { WHITELISTED_ADMIN_WALLET } from '../lib/solana'
 
 export interface PreflightResult {
   allowed: boolean
@@ -40,6 +39,7 @@ export class ComplianceService {
     walletAddress: string, 
     amount: number
   ): Promise<PreflightResult> {
+    
     // Layer 1: OFAC screening
     try {
       const screening = await ScreeningService.screenWallet(walletAddress)
@@ -200,7 +200,7 @@ export class ComplianceService {
     const { data, error } = await supabase.functions.invoke('compliance-verify', {
       body: { 
         stepId, 
-        walletAddress: (window as any).solana?.publicKey?.toString() || WHITELISTED_ADMIN_WALLET.toBase58() 
+        walletAddress: (window as any).solana?.publicKey?.toString() || '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU' 
       }
     })
     return { data, error }

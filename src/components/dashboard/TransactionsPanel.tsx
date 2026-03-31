@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { ArrowUpRight, ArrowDownLeft, Search, Filter, ExternalLink, Copy, X, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { FUSX_MINT, TOKEN_DISPLAY_NAMES } from "@/lib/solana";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ThemedDialogContent, Dialog, DialogHeader, DialogTitle } from "./ThemedDialog";
@@ -216,7 +215,7 @@ const TransactionsPanel = () => {
                     <span className={`font-medium ${tx.type === "withdrawal" ? "text-red-500" : "text-foreground"}`}>
                       {tx.type === "withdrawal" ? "-" : "+"}${tx.amount.toLocaleString()}
                     </span>
-                    <span className="text-muted-foreground">{TOKEN_DISPLAY_NAMES[tx.token] || tx.token}</span>
+                    <span className="text-muted-foreground">{tx.token}</span>
                     <span className="text-muted-foreground text-xs">{tx.date}</span>
                     <span className="text-muted-foreground font-mono text-xs">{tx.hash}</span>
                     <span className="text-right">
@@ -263,7 +262,7 @@ const TransactionsPanel = () => {
                 {[
                   { label: "Status", value: selectedTx.status, badge: true },
                   { label: "Date", value: selectedTx.date },
-                  { label: "Token", value: TOKEN_DISPLAY_NAMES[selectedTx.token] || selectedTx.token },
+                  { label: "Token", value: selectedTx.token },
                   { label: "From", value: selectedTx.from, mono: true },
                   { label: "To", value: selectedTx.to, mono: true },
                   { label: "Network Fee", value: selectedTx.fee },

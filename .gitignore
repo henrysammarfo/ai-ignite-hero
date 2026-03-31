@@ -4,10 +4,6 @@
 !.env.example
 test-*.ts
 supabase/functions/**/.env
-hack steps/
-win-deploy/
-scripts/*.txt
-*.txt
 
 # Brain/Artifacts
 brain/

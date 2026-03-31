@@ -10,8 +10,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import { toast } from "sonner";
 import WalletConnectModal from "./WalletConnectModal";
-import { PROGRAM_ID, getVaultPDA, getDepositorPDA, getProgram, USDC_MINT, FUSX_MINT, TOKEN_DISPLAY_NAMES } from "@/lib/solana";
-
+import { PROGRAM_ID, getVaultPDA, getDepositorPDA, getProgram, USDC_MINT } from "@/lib/solana";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect } from "react";
@@ -150,7 +149,7 @@ const VaultsPanel = () => {
         const defaults = strategyDefaults[tag];
         return {
           id: v.publicKey.toString(),
-          name: TOKEN_DISPLAY_NAMES[FUSX_MINT.toBase58()] || `Vault #${v.publicKey.toString().slice(0, 4)}`,
+          name: `Vault #${v.publicKey.toString().slice(0, 4)}`,
           tag,
           balance: v.account.totalAum.toNumber() / 1e6, // Assuming 6 decimals for USDC
           apy: parseFloat((5 + Math.random() * 5).toFixed(1)), // Mock APY for now
@@ -210,11 +209,7 @@ const VaultsPanel = () => {
       toast.loading("Creating Vault on Devnet...", { id: "createVault" });
       const program = getProgram(provider);
       const userKey = new PublicKey(publicKey);
-      // Use configured Squads multisig as authority when provided, else fall back to connected wallet
-      const multisigAuthority = import.meta.env.VITE_SQUADS_MULTISIG_AUTHORITY
-        ? new PublicKey(import.meta.env.VITE_SQUADS_MULTISIG_AUTHORITY)
-        : userKey;
-      const vaultPDA = getVaultPDA(multisigAuthority);
+      const vaultPDA = getVaultPDA(userKey);
 
       // Call the initialize_vault instruction
       await program.methods
@@ -222,7 +217,6 @@ const VaultsPanel = () => {
         .accounts({
           vaultState: vaultPDA,
           admin: userKey,
-          multisigAuthority,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc();
@@ -282,11 +276,12 @@ const VaultsPanel = () => {
 
       // Setup the token instructions
       await program.methods
-        .deposit(new anchor.BN(amt * 1e6), Array.from(Buffer.from("7f83b127ff24053643dd730704bd25966f9a721d9b921c17244907a957b4255d", "hex"))) // Real SHA256 format
+        .deposit(new anchor.BN(amt * 1e6), Array.from(Buffer.alloc(32))) // Mock source of funds hash
         .accounts({
           depositor: userKey,
           vaultState: vaultKey,
           depositorAccount: depositorPDA,
+          gatewayToken: userKey, // Placeholder for demo
           depositorUsdc: depositorUsdc,
           vaultUsdc: vaultUsdc,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -346,7 +341,6 @@ const VaultsPanel = () => {
           depositorUsdc: depositorUsdc,
           vaultUsdc: vaultUsdc,
           tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: anchor.web3.SystemProgram.programId,
         } as any)
         .rpc();
 
