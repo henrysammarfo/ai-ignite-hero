@@ -1,5 +1,5 @@
 {
-  "address": "2QBypCZ2Aru2aiyvixQ8AWrpuynFnZMVEDUySriWBw9m",
+  "address": "Ho3b8pA9EMwmYZQj83FakdgpMU3DiZUkVxMdMoxYCv3",
   "metadata": {
     "name": "compliance_vault",
     "version": "0.1.0",
@@ -7,6 +7,53 @@
     "description": "Institutional Compliance Vault on Solana"
   },
   "instructions": [
+    {
+      "name": "close_vault",
+      "discriminator": [
+        141,
+        103,
+        17,
+        126,
+        72,
+        75,
+        29,
+        29
+      ],
+      "accounts": [
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
     {
       "name": "deposit",
       "discriminator": [
@@ -112,87 +159,71 @@
       ]
     },
     {
-      "name": "verifyUser",
+      "name": "deposit_to_yield_vault",
       "discriminator": [
-        125,
+        60,
+        147,
+        7,
+        158,
+        134,
         185,
-        210,
-        191,
-        205,
-        224,
-        245,
-        170
+        75,
+        65
       ],
       "accounts": [
         {
           "name": "vault_state",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault_state.authority",
-                "account": "VaultState"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "authority",
+          "writable": true,
           "signer": true
         },
         {
-          "name": "user_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  100,
-                  101,
-                  112,
-                  111,
-                  115,
-                  105,
-                  116,
-                  111,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault_state"
-              },
-              {
-                "kind": "account",
-                "path": "user"
-              }
-            ]
-          }
+          "name": "vault_usdc_ata",
+          "writable": true
         },
         {
-          "name": "user"
+          "name": "vault_usx_ata",
+          "writable": true
+        },
+        {
+          "name": "vault_eusx_ata",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "usx_mint"
+        },
+        {
+          "name": "eusx_mint"
+        },
+        {
+          "name": "solstice_usx_program"
+        },
+        {
+          "name": "solstice_yield_program"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "is_verified",
-          "type": "bool"
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },
@@ -257,6 +288,73 @@
       ]
     },
     {
+      "name": "initialize_fortis_token",
+      "discriminator": [
+        151,
+        132,
+        31,
+        195,
+        2,
+        79,
+        243,
+        250
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "fusx_mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin"
+              }
+            ]
+          }
+        },
+        {
+          "name": "extra_account_metas",
+          "writable": true
+        },
+        {
+          "name": "token_hook_program"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initialize_vault",
       "discriminator": [
         48,
@@ -286,7 +384,7 @@
               },
               {
                 "kind": "account",
-                "path": "admin"
+                "path": "multisig_authority"
               }
             ]
           }
@@ -295,6 +393,9 @@
           "name": "admin",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "multisig_authority"
         },
         {
           "name": "system_program",
@@ -397,6 +498,302 @@
       ]
     },
     {
+      "name": "issue_vault_shares",
+      "discriminator": [
+        117,
+        1,
+        2,
+        24,
+        17,
+        194,
+        137,
+        131
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault_state"
+          ]
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_state"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user"
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "fusx_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "pause_vault_token",
+      "discriminator": [
+        255,
+        11,
+        99,
+        132,
+        87,
+        102,
+        85,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault_state"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "publish_reconciliation",
+      "discriminator": [
+        68,
+        197,
+        51,
+        226,
+        198,
+        244,
+        161,
+        184
+      ],
+      "accounts": [
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault_state"
+          ]
+        },
+        {
+          "name": "vault_usdc_account",
+          "docs": [
+            "The actual USDC token account holding the vault's assets"
+          ]
+        },
+        {
+          "name": "fusx_mint",
+          "docs": [
+            "The fUSX mint to read total supply"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "eusx_balance",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "resume_vault_token",
+      "discriminator": [
+        219,
+        213,
+        74,
+        47,
+        166,
+        91,
+        189,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault_state"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "transfer_hook",
+      "discriminator": [
+        220,
+        57,
+        220,
+        152,
+        126,
+        125,
+        97,
+        168
+      ],
+      "accounts": [
+        {
+          "name": "source"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "destination"
+        },
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "extra_account_meta_list"
+        },
+        {
+          "name": "vault_state"
+        },
+        {
+          "name": "source_depositor"
+        },
+        {
+          "name": "destination_depositor"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "update_whitelist",
       "discriminator": [
         94,
@@ -447,6 +844,195 @@
           "type": "bool"
         }
       ]
+    },
+    {
+      "name": "verify_user",
+      "discriminator": [
+        127,
+        54,
+        157,
+        106,
+        85,
+        167,
+        116,
+        119
+      ],
+      "accounts": [
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_state.authority",
+                "account": "VaultState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault_state"
+          ]
+        },
+        {
+          "name": "user_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_state"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "is_verified",
+          "type": "bool"
+        },
+        {
+          "name": "kyc_status",
+          "type": "u8"
+        },
+        {
+          "name": "is_sanctioned",
+          "type": "bool"
+        },
+        {
+          "name": "risk_score",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "whitelist_participant",
+      "discriminator": [
+        164,
+        128,
+        29,
+        8,
+        98,
+        3,
+        65,
+        205
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault_state"
+          ]
+        },
+        {
+          "name": "vault_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_state"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user"
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "fusx_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": []
     },
     {
       "name": "withdraw",
@@ -516,7 +1102,6 @@
         },
         {
           "name": "depositor",
-          "writable": true,
           "signer": true
         },
         {
@@ -530,11 +1115,67 @@
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
           "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_from_yield_vault",
+      "discriminator": [
+        122,
+        19,
+        150,
+        34,
+        224,
+        152,
+        9,
+        103
+      ],
+      "accounts": [
+        {
+          "name": "vault_state",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault_usdc_ata",
+          "writable": true
+        },
+        {
+          "name": "vault_usx_ata",
+          "writable": true
+        },
+        {
+          "name": "vault_eusx_ata",
+          "writable": true
+        },
+        {
+          "name": "solstice_usx_program"
+        },
+        {
+          "name": "solstice_yield_program"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount_eusx",
           "type": "u64"
         }
       ]
@@ -609,6 +1250,45 @@
       ]
     },
     {
+      "name": "ReconciliationPublished",
+      "discriminator": [
+        234,
+        204,
+        199,
+        20,
+        249,
+        218,
+        243,
+        233
+      ]
+    },
+    {
+      "name": "VaultPaused",
+      "discriminator": [
+        198,
+        157,
+        22,
+        151,
+        68,
+        100,
+        162,
+        35
+      ]
+    },
+    {
+      "name": "VaultResumed",
+      "discriminator": [
+        208,
+        173,
+        238,
+        64,
+        33,
+        63,
+        226,
+        151
+      ]
+    },
+    {
       "name": "WithdrawEvent",
       "discriminator": [
         22,
@@ -670,6 +1350,21 @@
       "code": 6006,
       "name": "UnauthorizedSigner",
       "msg": "Unauthorized signer"
+    },
+    {
+      "code": 6007,
+      "name": "VaultNotEmpty",
+      "msg": "Vault must be empty before closing"
+    },
+    {
+      "code": 6008,
+      "name": "AlreadyPaused",
+      "msg": "Vault is already paused"
+    },
+    {
+      "code": 6009,
+      "name": "NotPaused",
+      "msg": "Vault is not currently paused"
     }
   ],
   "types": [
@@ -715,8 +1410,16 @@
             "type": "bool"
           },
           {
-            "name": "civic_pass",
-            "type": "pubkey"
+            "name": "kyc_status",
+            "type": "u8"
+          },
+          {
+            "name": "is_sanctioned",
+            "type": "bool"
+          },
+          {
+            "name": "risk_score",
+            "type": "u8"
           },
           {
             "name": "deposited_at",
@@ -766,6 +1469,66 @@
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReconciliationPublished",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "usdc_balance",
+            "type": "u64"
+          },
+          {
+            "name": "eusx_balance",
+            "type": "u64"
+          },
+          {
+            "name": "fusx_total_supply",
+            "type": "u64"
+          },
+          {
+            "name": "backing_ratio",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultPaused",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultResumed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
           }
         ]
       }

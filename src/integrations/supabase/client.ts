@@ -4,13 +4,18 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Allow either publishable or anon key naming; anon is the standard public key.
+// Use anon key primarily (publishable key may not be accepted by edge functions)
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 let supabase;
 
-// Mock client if env missing
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+// Mock client if env missing OR mock flag enabled
+if (USE_MOCKS || !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.warn('Supabase env vars missing. Using functional mock client for demo. Check TODO.md');
 
   const listeners: ((event: string, session: any) => void)[] = [];
@@ -104,7 +109,13 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
       storage: localStorage,
       persistSession: true,
       autoRefreshToken: true,
-    }
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+      },
+    },
   });
 }
 
@@ -112,4 +123,3 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 // import { supabase } from "@/integrations/supabase/client";
 
 export { supabase };
-

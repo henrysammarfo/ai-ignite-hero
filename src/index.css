@@ -171,5 +171,12 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    overflow-y: auto;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
   }
 }

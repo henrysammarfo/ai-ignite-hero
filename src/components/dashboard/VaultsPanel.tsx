@@ -210,7 +210,11 @@ const VaultsPanel = () => {
       toast.loading("Creating Vault on Devnet...", { id: "createVault" });
       const program = getProgram(provider);
       const userKey = new PublicKey(publicKey);
-      const vaultPDA = getVaultPDA(userKey);
+      // Use configured Squads multisig as authority when provided, else fall back to connected wallet
+      const multisigAuthority = import.meta.env.VITE_SQUADS_MULTISIG_AUTHORITY
+        ? new PublicKey(import.meta.env.VITE_SQUADS_MULTISIG_AUTHORITY)
+        : userKey;
+      const vaultPDA = getVaultPDA(multisigAuthority);
 
       // Call the initialize_vault instruction
       await program.methods
@@ -218,6 +222,7 @@ const VaultsPanel = () => {
         .accounts({
           vaultState: vaultPDA,
           admin: userKey,
+          multisigAuthority,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc();

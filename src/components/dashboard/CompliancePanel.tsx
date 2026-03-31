@@ -5,8 +5,16 @@ import { Progress } from "@/components/ui/progress";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance, ComplianceStatus, ComplianceStep } from "@/contexts/ComplianceContext";
 import WalletConnectModal from "./WalletConnectModal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ScreeningService } from "@/services/ScreeningService";
+import { getProgram, getDepositorPDA } from "@/lib/solana";
+import { useConnection } from "@solana/wallet-adapter-react";
+import * as anchor from "@coral-xyz/anchor";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { KycService } from "@/services/KycService";
 
 const statusConfig: Record<ComplianceStatus, {
   color: string;
@@ -57,14 +65,84 @@ const formatDate = (iso: string | null) => {
   });
 };
 
-const StepCard = ({ step }: { step: ComplianceStep }) => {
-  const { initiateVerification, resetStep } = useCompliance();
+const StepCard = ({
+  step,
+  walletAddress,
+  onRefreshStatus,
+}: {
+  step: ComplianceStep;
+  walletAddress?: string | null;
+  onRefreshStatus?: () => Promise<void> | void;
+}) => {
+  const { initiateVerification, resetStep, updateStepStatus } = useCompliance();
   const config = statusConfig[step.status];
   const StatusIcon = config.Icon;
   const canRetry = step.status === "failed" || step.status === "expired";
   const canStart = step.status === "pending";
   const isVerified = step.status === "verified";
   const isLoading = step.status === "in_progress";
+
+  // KYC-specific local state
+  const [kycForm, setKycForm] = useState({
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
+    country: "",
+    documentType: "passport",
+    documentNumber: "",
+  });
+  const [kycFile, setKycFile] = useState<File | null>(null);
+  const [submittingKyc, setSubmittingKyc] = useState(false);
+
+  const requiresKycUpload = useMemo(() => step.id === "kyc", [step.id]);
+
+  const handleKycSubmit = async () => {
+    if (!walletAddress) {
+      toast.error("Connect wallet before starting KYC");
+      return;
+    }
+    if (!kycFile) {
+      toast.error("Upload a document to continue");
+      return;
+    }
+    if (!kycForm.firstName || !kycForm.lastName || !kycForm.country || !kycForm.dateOfBirth || !kycForm.documentNumber) {
+      toast.error("Fill in all required fields");
+      return;
+    }
+    try {
+      setSubmittingKyc(true);
+      updateStepStatus(step.id, "in_progress", { errorMessage: null });
+      toast.loading("Uploading document...", { id: "kyc" });
+      const uploaded = await KycService.uploadDocument(walletAddress, kycFile);
+      toast.loading("Submitting KYC for review...", { id: "kyc" });
+      await KycService.submitKyc(walletAddress, { ...kycForm, documentUrl: uploaded.publicUrl });
+      const review = await KycService.runAutoReview(walletAddress).catch(() => ({ status: "pending" }));
+      if (review?.status === "approved") {
+        await KycService.syncOnchain(walletAddress, review?.riskScore);
+        updateStepStatus(step.id, "verified", {
+          hash: uploaded.publicUrl,
+          timestamp: new Date().toISOString(),
+          errorMessage: null,
+          riskScore: review?.riskScore?.toString?.() || undefined,
+        });
+        toast.success("KYC approved and synced on-chain.", { id: "kyc" });
+      } else {
+        toast.success("KYC submitted. Awaiting manual review.", { id: "kyc" });
+        updateStepStatus(step.id, "in_progress", {
+          hash: uploaded.publicUrl,
+          timestamp: new Date().toISOString(),
+          errorMessage: null,
+        });
+      }
+      onRefreshStatus && (await onRefreshStatus());
+    } catch (err: any) {
+      console.error(err);
+      updateStepStatus(step.id, "failed", { errorMessage: err?.message || "KYC submission failed" });
+      toast.error(err?.message || "KYC submission failed", { id: "kyc" });
+    } finally {
+      setSubmittingKyc(false);
+    }
+  };
 
   return (
     <Card className="shadow-sm">
@@ -100,6 +178,94 @@ const StepCard = ({ step }: { step: ComplianceStep }) => {
                 <span className="text-[10px] text-foreground font-sans font-medium">{step.provider}</span>
               )}
             </div>
+
+            {/* KYC document upload */}
+            {requiresKycUpload && !isVerified && (
+              <div className="mt-3 space-y-3 rounded-lg border border-border/60 p-3 bg-muted/30">
+                <p className="text-xs font-semibold text-foreground font-sans">Upload identity document</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-sans">First name</Label>
+                    <Input
+                      value={kycForm.firstName}
+                      onChange={(e) => setKycForm({ ...kycForm, firstName: e.target.value })}
+                      placeholder="Jane"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-sans">Last name</Label>
+                    <Input
+                      value={kycForm.lastName}
+                      onChange={(e) => setKycForm({ ...kycForm, lastName: e.target.value })}
+                      placeholder="Doe"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-sans">Date of birth</Label>
+                    <Input
+                      type="date"
+                      value={kycForm.dateOfBirth}
+                      onChange={(e) => setKycForm({ ...kycForm, dateOfBirth: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-sans">Country</Label>
+                    <Input
+                      value={kycForm.country}
+                      onChange={(e) => setKycForm({ ...kycForm, country: e.target.value })}
+                      placeholder="Switzerland"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-sans">Document type</Label>
+                    <Select
+                      value={kycForm.documentType}
+                      onValueChange={(val) => setKycForm({ ...kycForm, documentType: val as any })}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select document" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="passport">Passport</SelectItem>
+                        <SelectItem value="drivers_license">Driver's License</SelectItem>
+                        <SelectItem value="national_id">National ID</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-sans">Document number</Label>
+                    <Input
+                      value={kycForm.documentNumber}
+                      onChange={(e) => setKycForm({ ...kycForm, documentNumber: e.target.value })}
+                      placeholder="ID12345678"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-sans">Upload document (PDF/JPG/PNG)</Label>
+                  <Input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(e) => setKycFile(e.target.files?.[0] || null)}
+                  />
+                  {kycFile && (
+                    <p className="text-[11px] text-muted-foreground font-sans">{kycFile.name}</p>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full sm:w-auto gap-2 font-sans"
+                  disabled={submittingKyc}
+                  onClick={handleKycSubmit}
+                >
+                  {submittingKyc && <Loader2 size={14} className="animate-spin" />}
+                  Upload & Submit KYC
+                </Button>
+                <p className="text-[11px] text-muted-foreground font-sans">
+                  All documents are stored in encrypted Supabase storage and linked to your wallet for manual/automated review.
+                </p>
+              </div>
+            )}
 
             {/* Verification details (only when verified or has data) */}
             {isVerified && step.verification.hash && (
@@ -146,7 +312,7 @@ const StepCard = ({ step }: { step: ComplianceStep }) => {
               {config.label}
             </span>
 
-            {canStart && (
+            {canStart && !requiresKycUpload && (
               <Button
                 size="sm"
                 variant="outline"
@@ -157,7 +323,7 @@ const StepCard = ({ step }: { step: ComplianceStep }) => {
               </Button>
             )}
 
-            {canRetry && (
+            {canRetry && !requiresKycUpload && (
               <Button
                 size="sm"
                 variant="outline"
@@ -359,7 +525,12 @@ const CompliancePanel = () => {
       {/* Individual Layers */}
       <div className="space-y-3">
         {steps.map((step) => (
-          <StepCard key={step.id} step={step} />
+          <StepCard
+            key={step.id}
+            step={step}
+            walletAddress={address}
+            onRefreshStatus={() => address ? loadComplianceStatus(address) : undefined}
+          />
         ))}
       </div>
     </div>

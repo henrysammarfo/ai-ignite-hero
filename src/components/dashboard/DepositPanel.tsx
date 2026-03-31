@@ -97,7 +97,7 @@ const DepositPanel = () => {
     try {
       toast.loading("Compliance verification & depositing...", { id: "deposit" });
 
-      // 1. Get KYC (Civic Pass) Token
+        // 1. Ensure Internal KYC is verified on-chain
       const kycStep = steps.find(s => s.id === 'kyc');
       if (kycStep?.status !== 'verified') {
         toast.error("KYC verification required", { id: "deposit" });
@@ -117,13 +117,19 @@ const DepositPanel = () => {
       const vaultUsdc = getAssociatedTokenAddressSync(USDC_MINT, vaultKey, true);
       const depositorUsdc = getAssociatedTokenAddressSync(USDC_MINT, userKey);
 
+      // 2a. Verify on-chain KYC flag before attempting deposit
+      const depositorAccount = await program.account.depositorAccount.fetchNullable(depositorPDA);
+      if (!depositorAccount || !depositorAccount.kycVerified) {
+        toast.error("On-chain KYC approval (verify_user) is required before deposit", { id: "deposit" });
+        return;
+      }
+
       await program.methods
         .deposit(amountBN, sofHash)
         .accounts({
           depositor: userKey,
           vaultState: vaultKey,
           depositorAccount: depositorPDA,
-          gatewayToken: userKey, // Using user as placeholder for gateway if not active in demo
           depositorUsdc: depositorUsdc,
           vaultUsdc: vaultUsdc,
           tokenProgram: TOKEN_PROGRAM_ID,

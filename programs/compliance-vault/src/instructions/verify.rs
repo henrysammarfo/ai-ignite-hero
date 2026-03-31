@@ -30,7 +30,13 @@ pub struct VerifyUser<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<VerifyUser>, is_verified: bool) -> Result<()> {
+pub fn handler(
+    ctx: Context<VerifyUser>, 
+    is_verified: bool,
+    kyc_status: u8,
+    is_sanctioned: bool,
+    risk_score: u8,
+) -> Result<()> {
     let user_acc = &mut ctx.accounts.user_account;
     
     // Initialize if brand new
@@ -41,7 +47,11 @@ pub fn handler(ctx: Context<VerifyUser>, is_verified: bool) -> Result<()> {
     }
 
     user_acc.kyc_verified = is_verified;
+    user_acc.kyc_status = kyc_status;
+    user_acc.is_sanctioned = is_sanctioned;
+    user_acc.risk_score = risk_score;
 
-    msg!("ComplianceVault: Set verification status for {} to {}", ctx.accounts.user.key(), is_verified);
+    msg!("ComplianceVault: Updated KYC for {}: Status={}, Sanctioned={}, Risk={}", 
+        ctx.accounts.user.key(), kyc_status, is_sanctioned, risk_score);
     Ok(())
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
 import { useCompliance } from "@/contexts/ComplianceContext";
 import WalletConnectModal from "./WalletConnectModal";
-import { getProgram, FUSX_MINT, PROGRAM_ID, TOKEN_DISPLAY_NAMES } from "@/lib/solana";
+import { getProgram, FUSX_MINT, PROGRAM_ID, TOKEN_DISPLAY_NAMES, INSTITUTIONAL_VAULT_PDA, SOLSTICE_EUSX } from "@/lib/solana";
 
 import { useConnection } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
@@ -52,7 +52,7 @@ const OverviewPanel = () => {
           .select('*')
           .order('timestamp', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         if (latestRecon) setRecon(latestRecon);
 
         // 3. Mini Spark Chart
@@ -178,7 +178,7 @@ const OverviewPanel = () => {
             </div>
           </CardContent>
           <CardFooter className="bg-muted/30 py-2">
-            <a href="https://explorer.solana.com/address/Gkt9h4QWpPBDtbaF5HvYKCc87H5WCRTUtMf77HdTGHBt?cluster=devnet" target="_blank" className="text-[10px] text-primary hover:underline">View eUSX on Explorer →</a>
+            <a href={`https://explorer.solana.com/address/${SOLSTICE_EUSX.toBase58()}?cluster=devnet`} target="_blank" className="text-[10px] text-primary hover:underline">View eUSX on Explorer →</a>
           </CardFooter>
         </Card>
 
@@ -217,7 +217,11 @@ const OverviewPanel = () => {
                  <div key={i} className="w-1.5 bg-primary rounded-t-sm" style={{ height: `${Math.max(20, Math.min(100, h.backing_ratio))}%` }} />
                ))}
              </div>
-             <a href={`https://explorer.solana.com/address/${FUSX_MINT.toBase58()}?cluster=devnet`} target="_blank" className="text-[10px] font-bold text-primary hover:underline">Verify On-Chain ↗</a>
+             <div className="flex gap-2">
+               <a href={`https://explorer.solana.com/address/${INSTITUTIONAL_VAULT_PDA.toBase58()}?cluster=devnet`} target="_blank" className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">Proof of Reserves →</a>
+               <span className="text-[10px] text-muted-foreground">|</span>
+               <a href={`https://explorer.solana.com/address/${FUSX_MINT.toBase58()}?cluster=devnet`} target="_blank" className="text-[10px] font-bold text-primary hover:underline">Token Identity ↗</a>
+             </div>
           </CardFooter>
         </Card>
 

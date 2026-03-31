@@ -13,7 +13,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FUSX_MINT, TOKEN_DISPLAY_NAMES } from "@/lib/solana";
+import { FUSX_MINT, TOKEN_DISPLAY_NAMES, INSTITUTIONAL_VAULT_PDA } from "@/lib/solana";
 
 
 const allApyData = [
@@ -148,12 +148,20 @@ const YieldPanel = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Solstice Trade Terminal */}
         <Card className="shadow-sm border-primary/20 bg-primary/5">
-          <CardHeader className="pb-3 border-b border-border/10">
-            <CardTitle className="text-base font-sans font-semibold flex items-center gap-2 text-primary">
-              <Zap size={16} />
-              Solstice Trade Terminal
-            </CardTitle>
-          </CardHeader>
+            <div className="flex items-center justify-between pb-3 border-b border-border/10">
+              <CardTitle className="text-base font-sans font-semibold flex items-center gap-2 text-primary">
+                <Zap size={16} />
+                Solstice Trade Terminal
+              </CardTitle>
+              <a 
+                href={`https://explorer.solana.com/address/${INSTITUTIONAL_VAULT_PDA.toBase58()}?cluster=devnet`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] text-primary hover:underline flex items-center gap-1"
+              >
+                View Proof of Reserves →
+              </a>
+            </div>
           <CardContent className="p-0">
             <Tabs defaultValue="mint" className="w-full">
               <TabsList className="w-full rounded-none border-b border-border/10 bg-transparent p-0">

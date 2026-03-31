@@ -9,9 +9,21 @@ export interface ScreeningResult {
 
 export class ScreeningService {
   private static readonly FUNCTION = 'ofac-screening'
+  private static get headers() {
+    const key =
+      (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+    return key
+      ? {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+        }
+      : {};
+  }
 
   static async screenWallet(walletAddress: string): Promise<ScreeningResult> {
     const { data, error } = await supabase.functions.invoke(this.FUNCTION, {
+      headers: this.headers,
       body: { action: 'screen_address', walletAddress }
     })
     if (error) throw error
@@ -29,6 +41,7 @@ export class ScreeningService {
 
   static async batchScreen(addresses: string[]) {
     const { data, error } = await supabase.functions.invoke(this.FUNCTION, {
+      headers: this.headers,
       body: { action: 'batch_screen', addresses }
     })
     if (error) throw error
@@ -37,6 +50,7 @@ export class ScreeningService {
 
   static async getStats() {
     const { data, error } = await supabase.functions.invoke(this.FUNCTION, {
+      headers: this.headers,
       body: { action: 'get_stats' }
     })
     if (error) throw error

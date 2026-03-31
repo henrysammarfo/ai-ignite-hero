@@ -14,7 +14,7 @@ anchor.setProvider(provider);
 import idl from "./target/idl/compliance_vault.json";
 
 async function check() {
-    const programId = new PublicKey("8GQ2bqdrcBSxUViinyHMKVnozCzimq76TQrcmLa5H9u8");
+    const programId = new PublicKey("ENuZVnZoFVWVtsdQesJ5BU8phX5yCZ7GEFRmRELd3dRK");
     const program = new Program(idl as any, provider);
 
     const [vaultPDA] = PublicKey.findProgramAddressSync([Buffer.from("vault"), wallet.publicKey.toBuffer()], programId);

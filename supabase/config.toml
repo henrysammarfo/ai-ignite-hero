@@ -2,3 +2,24 @@ project_id = "jkuzzzgfjhrcbzpumnpj"
 
 [functions.compliance-verify]
 verify_jwt = false
+[functions.solstice-yield]
+enabled = true
+verify_jwt = true
+import_map = "./functions/solstice-yield/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/solstice-yield/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/solstice-yield/*.html" ]
+
+[functions.reconciliation-publisher]
+enabled = true
+verify_jwt = true
+import_map = "./functions/reconciliation-publisher/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/reconciliation-publisher/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/reconciliation-publisher/*.html" ]

@@ -12,6 +12,14 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/api/solstice": {
+        target: "https://instructions.solstice.finance",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/solstice/, ""),
+      },
+    },
   },
   plugins: [
     react(),
