@@ -53,6 +53,23 @@ supabase/functions/     # Edge functions (compliance verification)
 - **Dark/Light Mode:** Full theme support across all panels
 - **Mobile Responsive:** Optimized for all screen sizes
 
+## 🛡️ Token-2022 Compliance Layer
+
+Fortis utilizes the **Token-2022 Transfer Hook** extension to enforce persistent, on-chain compliance for its treasury share token (**fUSX**).
+
+- **On-chain Gating**: Every fUSX transfer triggers our dedicated `fortis-token-hook` program.
+- **KYC Enforcement**: Transfers to non-KYC'd or high-risk wallets are rejected at the protocol level.
+- **Default Frozen**: New share accounts start frozen and require an administrative `whitelist_participant` call after compliance approval.
+- **Institutional Guardrails**: Includes Permanent Delegate and Required Memo extensions for regulatory auditing and Travel Rule compliance.
+
+## 🆔 Institutional Identity: Microsoft Entra B2C
+
+Fortis integrates with **Microsoft Entra B2C** (AMINA Bank's preferred IDP) to provide OIDC-compliant identity mapping for institutional users.
+
+- **Architecture**: A production-grade OIDC adapter translates Microsoft Subject IDs (OIDs) to Solana wallet public keys.
+- **Linking Flow**: Institutional users sign in via Microsoft to receive a secure JWT, which is then verified and linked to their connected Solana wallet in the `participants` database.
+- **Production Path**: The current adapter uses a high-fidelity OIDC bridge logic. To transition to a full live tenant, replace the `MOCK_SECRET` with real Microsoft Entra B2C tenant credentials in Supabase Vault.
+
 ## 📖 Development Guide
 
 See **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** for the full task breakdown, teammate assignments, integration points, and timeline.

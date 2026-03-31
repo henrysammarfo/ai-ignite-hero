@@ -33,7 +33,9 @@ pub struct DepositorAccount {
     pub vault: Pubkey,
     pub balance_usdc: u64,
     pub kyc_verified: bool,
-    pub civic_pass: Pubkey,           // The Civic Pass account that verified this depositor
+    pub kyc_status: u8,         // 0: None, 1: Pending, 2: Approved, 3: Rejected
+    pub is_sanctioned: bool,
+    pub risk_score: u8,         // 0-100
     pub deposited_at: i64,
     pub source_of_funds_hash: [u8; 32], // SHA256 hash of source of funds documentation
     pub total_deposited: u64,
@@ -43,7 +45,7 @@ pub struct DepositorAccount {
 }
 
 impl DepositorAccount {
-    pub const MAX_SIZE: usize = 8 + 32 + 32 + 8 + 1 + 32 + 8 + 32 + 8 + 8 + 8 + 1;
+    pub const MAX_SIZE: usize = 8 + 32 + 32 + 8 + 1 + 1 + 1 + 1 + 8 + 32 + 8 + 8 + 8 + 1;
 }
 
 #[account]

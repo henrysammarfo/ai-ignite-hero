@@ -70,8 +70,8 @@ const defaultSteps: ComplianceStep[] = [
   {
     id: "kyc",
     title: "KYC — Identity Verification",
-    description: "Verify organization identity via Civic Pass on-chain gate. Required for all vault operations.",
-    provider: "Civic Pass",
+    description: "Verify organization identity via Internal KYC & Squads authority. Required for all vault operations.",
+    provider: "Internal KYC",
     providerUrl: "https://civic.com",
     status: "pending",
     statusLabel: STATUS_LABELS.pending,

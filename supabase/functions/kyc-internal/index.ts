@@ -7,6 +7,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+const KYC_ONCHAIN_ENDPOINT = Deno.env.get("KYC_ONCHAIN_ENDPOINT");
 
 // CORS headers
 const corsHeaders = {
@@ -237,6 +238,15 @@ Deno.serve(async (req) => {
           action: "kyc_approved",
           risk_score: finalRiskScore
       });
+
+      // Fire on-chain verification webhook (non-blocking)
+      if (KYC_ONCHAIN_ENDPOINT) {
+        fetch(KYC_ONCHAIN_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userWallet: walletAddress, riskScore: finalRiskScore })
+        }).catch((e) => console.error("kyc-onchain trigger failed:", e));
+      }
       
       return new Response(JSON.stringify({ 
           status: "approved", 

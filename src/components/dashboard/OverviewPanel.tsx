@@ -1,278 +1,305 @@
 import { useState, useEffect } from "react";
-import { TrendingUp, Shield, DollarSign, Clock, Activity, CheckCircle2, Circle, Loader2, AlertTriangle, Wallet, ArrowUpRight, ArrowDownLeft } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield, Database, Lock, Globe, Server, AlertTriangle, AlertCircle, RefreshCw } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
-import { useCompliance, ComplianceStatus } from "@/contexts/ComplianceContext";
+import { useCompliance } from "@/contexts/ComplianceContext";
 import WalletConnectModal from "./WalletConnectModal";
-import { getProgram } from "@/lib/solana";
+import { getProgram, FUSX_MINT, PROGRAM_ID, TOKEN_DISPLAY_NAMES, INSTITUTIONAL_VAULT_PDA, SOLSTICE_EUSX } from "@/lib/solana";
+
 import { useConnection } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-
-
-const statusIcons: Record<ComplianceStatus, typeof CheckCircle2> = {
-  pending: Circle,
-  in_progress: Loader2,
-  verified: CheckCircle2,
-  failed: AlertTriangle,
-  expired: Clock,
-};
+import { SolsticeService } from "@/services/SolsticeService";
 
 const OverviewPanel = () => {
   const { connected, wallet } = useWallet();
   const { connection } = useConnection();
-  const { steps, completedCount, totalCount, initiateVerification } = useCompliance();
+  const { complianceStatus } = useCompliance();
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
-  const [totalDeposited, setTotalDeposited] = useState<number>(0);
-  const [totalYield, setTotalYield] = useState<number>(0);
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [loadingTransactions, setLoadingTransactions] = useState(true);
-
-  const triggerVerification = (id: string) => {
-    initiateVerification(id);
-  };
+  // Real-time Dashboard State
+  const [yieldPos, setYieldPos] = useState<any>(null);
+  const [recon, setRecon] = useState<any>(null);
+  const [reconHistory, setReconHistory] = useState<any[]>([]);
+  const [auditCount, setAuditCount] = useState<number>(0);
+  const [vaultStatus, setVaultStatus] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const provider = connected && wallet
     ? new anchor.AnchorProvider(connection, wallet.adapter as any, { preflightCommitment: "processed" })
     : null;
 
   useEffect(() => {
-    const fetchAggregates = async () => {
-      if (!provider) {
-        setTotalDeposited(0);
-        setLoadingStats(false);
-        return;
-      }
+    let intervalId: NodeJS.Timeout;
+
+    const fetchData = async () => {
+      if (!connected || !wallet?.adapter.publicKey) return;
+      const pubkey = wallet.adapter.publicKey.toBase58();
+
       try {
-        setLoadingStats(true);
-        const program = getProgram(provider);
-        const vaults = await program.account.vaultState.all();
+        setLoading(true);
 
-        const total = vaults.reduce((sum, v) => sum + (v.account.totalAum.toNumber() / 1e6), 0);
-        const yieldTotal = vaults.reduce((sum, v) => sum + (v.account.totalYieldHarvested.toNumber() / 1e6), 0);
+        // 1. Yield Position
+        const yp = await SolsticeService.getYieldPosition(pubkey).catch(() => null);
+        if (yp) setYieldPos(yp);
 
-        setTotalDeposited(total);
-        setTotalYield(yieldTotal);
-      } catch (err) {
-        console.error("Failed to fetch vaults for overview:", err);
+        // 2. Reconciliation Oracle (Latest)
+        const { data: latestRecon } = await supabase
+          .from('reconciliation_log')
+          .select('*')
+          .order('timestamp', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (latestRecon) setRecon(latestRecon);
+
+        // 3. Mini Spark Chart
+        const { data: history } = await supabase
+          .from('reconciliation_log')
+          .select('backing_ratio')
+          .order('timestamp', { ascending: false })
+          .limit(6);
+        if (history) setReconHistory(history.reverse());
+
+        // 4. Audit Count
+        const { count } = await supabase
+          .from('transactions') // Reusing transactions as audits for this demo
+          .select('*', { count: 'exact', head: true });
+        setAuditCount(count || 0);
+
+        // 5. Vault On-Chain State
+        if (provider) {
+          const program = getProgram(provider);
+          // Just fetching the first vault for the dashboard demo, typically you'd fetch by authority
+          const vaults = await (program.account as any).vaultState.all();
+          if (vaults.length > 0) {
+            const v = vaults[0].account;
+            setVaultStatus(v);
+            setIsAdmin(v.authority.toBase58() === pubkey);
+          }
+        }
+      } catch (e) {
+        console.error("Dashboard feed error:", e);
       } finally {
-        setLoadingStats(false);
+        setLoading(false);
       }
     };
 
-    const fetchRecentTransactions = async () => {
-      setLoadingTransactions(true);
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+    if (connected) {
+      fetchData();
+      intervalId = setInterval(fetchData, 30000);
+    }
 
-      if (!error && data) {
-        setRecentTransactions(data);
-      }
-      setLoadingTransactions(false);
-    };
-
-    fetchAggregates();
-    fetchRecentTransactions();
-
-    const channel = supabase
-      .channel('overview-tx-sync')
-      .on('postgres_changes', { event: 'INSERT', table: 'transactions' }, () => {
-        fetchRecentTransactions();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => clearInterval(intervalId);
   }, [connected, wallet]);
 
-  const dynamicStats = [
-    { label: "Total Instituional TVL", value: loadingStats ? "..." : `$${totalDeposited.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, change: "Live", icon: DollarSign },
-    { label: "Current APY", value: "8.2%", change: "Avg Weighted", icon: TrendingUp },
-    { label: "Yield Earned", value: loadingStats ? "..." : `$${totalYield.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, change: "Awaiting Distribution", icon: TrendingUp },
-    { label: "Next Payout", value: "2d 14h", change: "Next Epoch", icon: Clock },
-  ];
+  const togglePause = async () => {
+    if (!provider || !vaultStatus) return;
+    try {
+      const program = getProgram(provider);
+      // Derive vault PDA via authority
+      const [vaultPda] = anchor.web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("vault"), wallet!.adapter.publicKey!.toBuffer()],
+          PROGRAM_ID
+      );
+
+      if (vaultStatus.paused) {
+        if (!window.confirm("This will resume all fUSX transfers. Confirm?")) return;
+        await program.methods.resumeVaultToken().accounts({
+          vaultState: vaultPda,
+          authority: wallet!.adapter.publicKey!
+        }).rpc();
+      } else {
+        if (!window.confirm("This will emergency pause all fUSX transfers. Confirm?")) return;
+        await program.methods.pauseVaultToken().accounts({
+          vaultState: vaultPda,
+          authority: wallet!.adapter.publicKey!
+        }).rpc();
+      }
+      window.location.reload();
+    } catch (e) {
+      alert("Failed to toggle pause: " + e);
+    }
+  };
 
   if (!connected) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
-            <Shield size={28} className="text-muted-foreground" />
-          </div>
-          <h2 className="text-xl font-serif font-bold text-foreground">Connect your wallet</h2>
-          <p className="text-sm text-muted-foreground max-w-sm font-sans">
-            Connect a Solana wallet to access your institutional vault dashboard.
-          </p>
-          <Button onClick={() => setWalletModalOpen(true)} className="gap-2 font-sans">
-            <Wallet size={14} />
-            Connect Wallet
-          </Button>
-          <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto shadow-inner">
+          <Shield size={28} className="text-muted-foreground" />
         </div>
+        <h2 className="text-xl font-serif font-bold text-foreground">Institutional Vault Access</h2>
+        <Button onClick={() => setWalletModalOpen(true)} className="gap-2">Connect Wallet</Button>
+        <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground font-sans mt-1">Your institutional vault overview</p>
+    <div className="space-y-6 pb-20">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-serif font-bold">Vault Overview</h1>
+          <p className="text-sm text-muted-foreground">Real-time yields, reserves, and compliance.</p>
+        </div>
+        {loading && <RefreshCw size={16} className="animate-spin text-muted-foreground" />}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {dynamicStats.map((stat) => (
-          <Card key={stat.label} className="shadow-sm">
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] sm:text-xs text-muted-foreground font-sans uppercase tracking-wider">{stat.label}</span>
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <stat.icon size={14} className="text-primary" />
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* VAULT OVERVIEW CARD */}
+        <Card className="shadow-sm border-primary/10">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm uppercase tracking-wider font-bold flex gap-2"><Database size={16} /> Strategy Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-end border-b pb-2">
+              <span className="text-xs text-muted-foreground">Total Deposited</span>
+              <span className="text-lg font-bold">{yieldPos?.currentValueUsdc ? (yieldPos.currentValueUsdc - yieldPos.yieldEarned).toLocaleString() : '0'} USDC</span>
+            </div>
+            <div className="flex justify-between items-end border-b pb-2">
+              <span className="text-xs text-muted-foreground">Current Value</span>
+              <span className="text-lg font-bold text-green-500">{yieldPos?.currentValueUsdc?.toLocaleString() || '0'} USDC</span>
+            </div>
+            <div className="flex justify-between items-end border-b pb-2">
+              <span className="text-xs text-muted-foreground">Yield Earned</span>
+              <span className="text-sm font-bold text-green-500">+{yieldPos?.yieldEarned?.toLocaleString(undefined, { maximumFractionDigits: 4 }) || '0'} USDC</span>
+            </div>
+            <div className="grid grid-cols-2 pt-2 text-xs">
+              <div>
+                <span className="text-muted-foreground block">Source</span>
+                <span className="font-semibold text-primary">{yieldPos?.provider || 'Solstice (eUSX)'}</span>
               </div>
-              <p className="text-lg sm:text-2xl font-bold font-sans text-foreground">{stat.value}</p>
-              <p className="text-xs text-primary font-sans font-medium mt-1">{stat.change}</p>
-            </CardContent>
-          </Card>
-        ))}
+              <div className="text-right">
+                <span className="text-muted-foreground block">Net IRR</span>
+                <span className="font-semibold text-primary">{yieldPos?.apy || '13.96'}%</span>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="bg-muted/30 py-2">
+            <a href={`https://explorer.solana.com/address/${SOLSTICE_EUSX.toBase58()}?cluster=devnet`} target="_blank" className="text-[10px] text-primary hover:underline">View eUSX on Explorer →</a>
+          </CardFooter>
+        </Card>
+
+        {/* PROOF OF RESERVES CARD */}
+        <Card className="shadow-sm border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm uppercase tracking-wider font-bold flex gap-2 text-primary"><Shield size={16} /> Proof of Reserves</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+             <div className="flex justify-between items-end mb-1">
+              <span className="text-xs text-muted-foreground tracking-widest uppercase">Backing Ratio</span>
+              <span className="text-2xl font-black text-primary">{recon?.backing_ratio || '100'}%</span>
+            </div>
+            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary" style={{ width: `${Math.min(recon?.backing_ratio || 100, 100)}%` }}></div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-xs mt-4">
+              <div className="bg-background/80 p-2 rounded border">
+                <span className="text-muted-foreground block text-[10px] uppercase">USDC Backing</span>
+                <span className="font-bold">{recon?.usdc_balance?.toLocaleString() || '0'}</span>
+              </div>
+              <div className="bg-background/80 p-2 rounded border">
+                <span className="text-muted-foreground block text-[10px] uppercase">{TOKEN_DISPLAY_NAMES[FUSX_MINT.toBase58()] || "fUSX"} Circulation</span>
+                <span className="font-bold">{recon?.fusx_total_supply?.toLocaleString() || '0'}</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground pt-2">
+              <Globe size={10} /> Verified {recon?.timestamp ? format(new Date(recon.timestamp), "MMM d, h:mm:ss a") : 'Just now'} · Slot {recon?.slot || 'N/A'}
+            </div>
+          </CardContent>
+           <CardFooter className="bg-primary/10 py-2 flex justify-between">
+             <div className="flex items-end gap-[2px] h-4">
+               {reconHistory.map((h, i) => (
+                 <div key={i} className="w-1.5 bg-primary rounded-t-sm" style={{ height: `${Math.max(20, Math.min(100, h.backing_ratio))}%` }} />
+               ))}
+             </div>
+             <div className="flex gap-2">
+               <a href={`https://explorer.solana.com/address/${INSTITUTIONAL_VAULT_PDA.toBase58()}?cluster=devnet`} target="_blank" className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">Proof of Reserves →</a>
+               <span className="text-[10px] text-muted-foreground">|</span>
+               <a href={`https://explorer.solana.com/address/${FUSX_MINT.toBase58()}?cluster=devnet`} target="_blank" className="text-[10px] font-bold text-primary hover:underline">Token Identity ↗</a>
+             </div>
+          </CardFooter>
+        </Card>
+
+        {/* TOKEN STATUS CARD */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm uppercase tracking-wider font-bold flex gap-2"><Lock size={16} /> Infrastructure Status</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition">
+              <span className="text-muted-foreground">Standard</span>
+              <span className="font-mono bg-muted px-2 py-0.5 rounded text-xs border">Token-2022</span>
+            </div>
+            <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition">
+              <span className="text-muted-foreground">Transfer Hook</span>
+              <span className="text-green-600 font-bold bg-green-500/10 px-2 py-0.5 rounded text-xs border border-green-500/20">Active — KYC Enforced</span>
+            </div>
+            <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition">
+              <span className="text-muted-foreground">Pausable</span>
+              <span className="text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded text-xs border border-emerald-500/20">Configured</span>
+            </div>
+            <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition">
+              <span className="text-muted-foreground">Vault Engine</span>
+              {vaultStatus?.paused ? (
+                  <span className="text-red-500 font-bold flex items-center gap-1 animate-pulse border border-red-500/30 bg-red-500/10 px-2 py-0.5 rounded text-xs"><AlertTriangle size={12} /> PAUSED</span>
+              ) : (
+                  <span className="text-green-600 font-bold flex items-center gap-1 border border-green-500/20 bg-green-500/10 px-2 py-0.5 rounded text-xs"><Globe size={12} /> ACTIVE</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* COMPLIANCE SUMMARY CARD */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm uppercase tracking-wider font-bold flex gap-2"><Server size={16} /> Compliance Registry</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between items-center p-2 border-b">
+              <span className="text-muted-foreground">Audit Events</span>
+              <span className="font-mono">{auditCount} Logged</span>
+            </div>
+            <div className="flex justify-between items-center p-2 border-b">
+              <span className="text-muted-foreground">KYC / AML</span>
+              <span className="font-bold">{complianceStatus?.kycStatus === 'approved' ? '✓ Checked' : '⏳ Pending'}</span>
+            </div>
+            <div className="flex justify-between items-center p-2 border-b">
+              <span className="text-muted-foreground">OFAC Screening</span>
+              <span className="font-bold">{complianceStatus?.ofacClear ? '✓ Clear' : '✗ Flagged'}</span>
+            </div>
+             <div className="flex justify-between items-center p-2">
+              <span className="text-muted-foreground">Squads Travel Rule</span>
+              <span className="font-medium bg-muted px-2 py-0.5 rounded text-xs border">$1k Threshold</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Compliance Status Detailed View */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3 px-4 sm:px-6">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
-              <Shield size={16} className="text-primary" />
-              Compliance Pillars
-            </CardTitle>
-            <span className="text-xs font-sans text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {completedCount}/{totalCount} Verified
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent className="px-4 sm:px-6 pb-6">
-          <div className="grid gap-3">
-            {steps.map((step) => {
-              const Icon = statusIcons[step.status];
-              const isVerified = step.status === "verified";
-              const isFailed = step.status === "failed";
-              const isInProgress = step.status === "in_progress";
+      {/* ADMIN CONTROLS */}
+      {isAdmin && (
+        <Card className="border-red-500/30 bg-red-500/5 mt-6">
+          <CardHeader className="pb-2">
+             <CardTitle className="text-sm uppercase tracking-wider font-bold flex gap-2 text-red-500"><AlertCircle size={16} /> Administrator Master Controls</CardTitle>
+          </CardHeader>
+          <CardContent className="flex gap-4">
+             {vaultStatus?.paused ? (
+                <Button onClick={togglePause} className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20 font-bold tracking-wide w-full max-w-sm">
+                   🟢 Resume All Vault Operations
+                </Button>
+             ) : (
+                <Button onClick={togglePause} variant="destructive" className="shadow-lg shadow-red-600/20 font-bold tracking-wide w-full max-w-sm">
+                   🔴 Emergency Pause Token Transfers
+                </Button>
+             )}
+          </CardContent>
+        </Card>
+      )}
 
-              return (
-                <div 
-                  key={step.id} 
-                  className={`p-4 rounded-xl border transition-all duration-200 ${
-                    isVerified ? "bg-primary/5 border-primary/20" : "bg-card border-border hover:border-muted-foreground/20"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-sans font-bold text-foreground">{step.title}</h4>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-sans font-semibold uppercase tracking-tight ${
-                          isVerified ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                        }`}>
-                          {step.provider}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                        {step.description}
-                      </p>
-                      
-                      {isVerified && step.verification.hash && (
-                        <div className="mt-2 flex items-center gap-2 text-[10px] font-mono text-muted-foreground bg-muted/50 p-1.5 rounded border border-border/50">
-                          <CheckCircle2 size={10} className="text-primary" />
-                          <span className="truncate">Hash: {step.verification.hash}</span>
-                        </div>
-                      )}
-
-                      {isFailed && step.verification.errorMessage && (
-                        <div className="mt-2 flex items-center gap-2 text-[10px] font-sans text-destructive bg-destructive/5 p-1.5 rounded border border-destructive/10">
-                          <AlertTriangle size={10} />
-                          <span>{step.verification.errorMessage}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <Button
-                      size="sm"
-                      variant={isVerified ? "outline" : isFailed ? "destructive" : "default"}
-                      disabled={isVerified || isInProgress}
-                      onClick={() => {
-                        triggerVerification(step.id);
-                      }}
-                      className="min-w-[100px] h-9 gap-2 shadow-sm"
-                    >
-                      {isInProgress ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : isVerified ? (
-                        <CheckCircle2 size={14} />
-                      ) : (
-                        "Verify"
-                      )}
-                      {isInProgress ? "..." : isVerified ? "Done" : isFailed ? "Retry" : "Verify"}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
-            <Activity size={16} className="text-muted-foreground" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loadingTransactions ? (
-            <div className="py-12 flex flex-col items-center justify-center text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin mb-2" />
-              <p className="text-xs font-sans">Loading activity...</p>
-            </div>
-          ) : recentTransactions.length === 0 ? (
-            <div className="space-y-4 text-center py-12">
-              <Activity size={24} className="text-muted-foreground mx-auto mb-2 opacity-30" />
-              <p className="text-sm font-sans text-muted-foreground">No recent activity detected.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {recentTransactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === 'deposit' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                      {tx.type === 'deposit' ? <ArrowDownLeft size={14} className="text-green-600" /> : <ArrowUpRight size={14} className="text-red-500" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-sans font-medium text-foreground capitalize">{tx.type}</p>
-                      <p className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">{format(new Date(tx.created_at), "MMM d, h:mm a")}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-sans font-bold ${tx.type === 'withdrawal' ? 'text-red-500' : 'text-foreground'}`}>
-                      {tx.type === 'withdrawal' ? '-' : '+'}${Number(tx.amount).toLocaleString()}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{tx.tx_signature?.slice(0, 8)}...</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };

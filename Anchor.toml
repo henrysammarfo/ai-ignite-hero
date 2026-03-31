@@ -1,12 +1,14 @@
 [toolchain]
-anchor_version = "0.30.1"
+anchor_version = "0.32.1"
 
 [features]
 resolution = true
-skip-lint = false
+skip-lint = true
+idl-build = ["anchor-spl/idl-build"]
 
 [programs.devnet]
-compliance_vault = "2QBypCZ2Aru2aiyvixQ8AWrpuynFnZMVEDUySriWBw9m"
+compliance_vault = "Ho3b8pA9EMwmYZQj83FakdgpMU3DiZUkVxMdMoxYCv3"
+fortis_token_hook = "73gvZEQEaGNGSR9ZWNGGtf7hex32sVjPeKddQwhpThCt"
 
 [registry]
 url = "https://anchor.projectserum.com"

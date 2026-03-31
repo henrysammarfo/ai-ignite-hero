@@ -22,7 +22,7 @@ const Login = () => {
   const [resetSent, setResetSent] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, loginWithEntra } = useAuth();
 
   useEffect(() => {
     // If we're authenticated and auth state has stopped loading, go to dashboard
@@ -256,18 +256,30 @@ const Login = () => {
                 </div>
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4 flex flex-col gap-3">
+                <Button
+                  variant="outline"
+                  className="w-full font-sans text-sm gap-2 border-primary/20 bg-primary/5 hover:bg-primary/10"
+                  type="button"
+                  disabled={loading}
+                  onClick={() => loginWithEntra()}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 23 23"><path fill="#f3f3f3" d="M0 0h23v23H0z" /><path fill="#f35325" d="M1 1h10v10H1z" /><path fill="#81bc06" d="M12 1h10v10H12z" /><path fill="#05a6f0" d="M1 12h10v10H1z" /><path fill="#ffba08" d="M12 12h10v10H12z" /></svg>
+                  Continue with Microsoft Entra ID
+                </Button>
+
                 <Button
                   variant="outline"
                   className="w-full font-sans text-sm gap-2"
                   type="button"
+                  disabled={loading}
                   onClick={async () => {
                     setLoading(true);
-                    const { error } = await supabase.auth.signInWithOAuth({ 
-                      provider: "google", 
-                      options: { 
-                        redirectTo: `${window.location.origin}/dashboard` 
-                      } 
+                    const { error } = await supabase.auth.signInWithOAuth({
+                      provider: "google",
+                      options: {
+                        redirectTo: `${window.location.origin}/dashboard`
+                      }
                     });
                     if (error) {
                       toast.error(error.message);

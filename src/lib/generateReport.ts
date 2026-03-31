@@ -27,10 +27,10 @@ const MOCK_DATA = {
       {
         heading: "2. KYC / Identity Verification",
         rows: [
-          ["Provider", "Civic Pass (on-chain)"],
+          ["Provider", "Internal KYC (Squads-approved)"],
           ["Status", "✓ Verified"],
           ["Verification Level", "Institutional — Enhanced Due Diligence"],
-          ["Gateway Token", "CivicGwy...8xKQ (Devnet)"],
+          ["On-chain Approval", "Multisig attest (internal registry)"],
           ["Last Reverification", "2026-02-15"],
         ],
       },
